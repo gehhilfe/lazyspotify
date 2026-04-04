@@ -8,7 +8,7 @@ import (
 )
 
 type Spoke struct {
-	Frames []Frame
+	Frames       []Frame
 	currentFrame int
 }
 
@@ -16,37 +16,31 @@ type Frame struct {
 	view string
 }
 
-
 func NewFrame(view string) Frame {
 	return Frame{
 		view: view,
 	}
 }
 
-type NextFrameMsg struct {}
+type NextFrameMsg struct{}
 
-func setFrames() []Frame{
-	topStateMid := "┌──╤──┐"
-	topStateEnd := "┌─────┐"
-	midLayer1Mid := "│  |  │"
-	midLayer1End := "│ \\ / │"
-	midLayer2Mid := "│──┼──│"
-	midLayer2End := "│  X  │"
-	midLayer3Mid := "│  |  │"
-	midLayer3End := "│ / \\ │"
-	bottomStateMid := "└──╧──┘"
-	bottomStateEnd := "└─────┘"
+func setFrames() []Frame {
+	top := " .---. "
+	bottom := " '---' "
 
-	frame1 := topStateMid + "\n" + midLayer1Mid + "\n" + midLayer2Mid + "\n" + midLayer3Mid + "\n" + bottomStateMid
-	frame2 := topStateEnd + "\n" + midLayer1End + "\n" + midLayer2End + "\n" + midLayer3End + "\n" + bottomStateEnd
+	frame1 := top + "\n" + "/  |  \\" + "\n" + "|  o  |" + "\n" + "\\  |  /" + "\n" + bottom
+	frame2 := top + "\n" + "/   / \\" + "\n" + "|  o  |" + "\n" + "\\ /   /" + "\n" + bottom
+	frame3 := top + "\n" + "/     \\" + "\n" + "|─ o ─|" + "\n" + "\\     /" + "\n" + bottom
+	frame4 := top + "\n" + "/ \\   \\" + "\n" + "|  o  |" + "\n" + "\\   \\ /" + "\n" + bottom
 
 	frames := []Frame{
 		NewFrame(frame1),
 		NewFrame(frame2),
+		NewFrame(frame3),
+		NewFrame(frame4),
 	}
 	return frames
 }
-
 
 func NewSpoke(width, height int) Spoke {
 	return Spoke{
@@ -54,9 +48,9 @@ func NewSpoke(width, height int) Spoke {
 	}
 }
 
-func (s *Spoke) GetSize () (int, int) {
-	return lipgloss.Width(s.Frames[s.currentFrame].view), 
-	lipgloss.Height(s.Frames[s.currentFrame].view)
+func (s *Spoke) GetSize() (int, int) {
+	return lipgloss.Width(s.Frames[s.currentFrame].view),
+		lipgloss.Height(s.Frames[s.currentFrame].view)
 }
 
 func (s *Spoke) View() string {
@@ -68,7 +62,7 @@ func (s *Spoke) NextFrame() {
 }
 
 func DoTickSpokes() tea.Cmd {
-	return tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
+	return tea.Tick(180*time.Millisecond, func(t time.Time) tea.Msg {
 		return NextFrameMsg{}
 	})
 }
