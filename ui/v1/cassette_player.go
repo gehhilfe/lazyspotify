@@ -52,9 +52,15 @@ func (c *CassettePlayer) View() string {
 	cassette := c.cassette.View()
 	cassetteW, cassetteH := lipgloss.Width(cassette), lipgloss.Height(cassette)
 	var buttons string
-	for _, button := range c.controls {
-		buttons = lipgloss.JoinHorizontal(lipgloss.Left, buttons," ",button.View())
+
+	for i := range c.controls {
+		if(i == len(c.controls)/2){
+			buttons = lipgloss.JoinHorizontal(lipgloss.Left, buttons,"  ",c.controls[i].View())
+			continue
+		}
+		buttons = lipgloss.JoinHorizontal(lipgloss.Left, buttons," ",c.controls[i].View())
 	}
+
 	playerW := max(60, max(lipgloss.Width(buttons), cassetteW)+6)
 	playerH := max(4, cassetteH + lipgloss.Height(buttons) +2)
 	player := c.style.Render(playerShell(playerW, playerH))
@@ -62,7 +68,7 @@ func (c *CassettePlayer) View() string {
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(player).ID("player"),
 		lipgloss.NewLayer(cassette).X(cassetteTapeX).Y(2).ID("cassette"),
-		lipgloss.NewLayer(buttons).X(cassetteTapeX + 1).Y(2 + cassetteH).ID("buttons"),
+		lipgloss.NewLayer(buttons).X(cassetteTapeX).Y(2 + cassetteH).ID("buttons"),
 	}
 	compositor := lipgloss.NewCompositor(layers...)
 	player = compositor.Render()
@@ -131,7 +137,7 @@ func (c *CassettePlayer) HandleButtonPress(kind ButtonKind) {
 func NewPlayButton() PlayerButton {
 	return PlayerButton{
 		kind:  PlayButton,
-		style: lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")),
+		style: lipgloss.NewStyle().Foreground(lipgloss.Color("14")),
 		icon:  "|>",
 	}
 }
@@ -139,7 +145,7 @@ func NewPlayButton() PlayerButton {
 func NewPauseButton() PlayerButton {
 	return PlayerButton{
 		kind:  PauseButton,
-		style: lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")),
+		style: lipgloss.NewStyle().Foreground(lipgloss.Color("14")),
 		icon:  "||",
 	}
 }
@@ -147,7 +153,7 @@ func NewPauseButton() PlayerButton {
 func NewSeekForwardButton() PlayerButton {
 	return PlayerButton{
 		kind:  SeekForwardButton,
-		style: lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")),
+		style: lipgloss.NewStyle().Foreground(lipgloss.Color("14")),
 		icon:  ">>",
 	}
 }
@@ -155,7 +161,7 @@ func NewSeekForwardButton() PlayerButton {
 func NewSeekBackwardButton() PlayerButton {
 	return PlayerButton{
 		kind:  SeekBackwardButton,
-		style: lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")),
+		style: lipgloss.NewStyle().Foreground(lipgloss.Color("14")),
 		icon:  "<<",
 	}
 }
@@ -163,7 +169,7 @@ func NewSeekBackwardButton() PlayerButton {
 func NewNextButton() PlayerButton {
 	return PlayerButton{
 		kind:  NextButton,
-		style: lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")),
+		style: lipgloss.NewStyle().Foreground(lipgloss.Color("14")),
 		icon:  ">|",
 	}
 }
@@ -171,7 +177,7 @@ func NewNextButton() PlayerButton {
 func NewPreviousButton() PlayerButton {
 	return PlayerButton{
 		kind:  PreviousButton,
-		style: lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")),
+		style: lipgloss.NewStyle().Foreground(lipgloss.Color("14")),
 		icon:  "|<",
 	}
 }
@@ -181,15 +187,19 @@ func (p *PlayerButton) View() string {
 		btnW = 6
 		btnH = 3
 	)
-	shell := buttonShell(btnW, btnH, p.pressed)
-	if(p.pressed){
+	shellColor := lipgloss.Color("8")
+	iconStyle := p.style
+	if p.pressed {
 		logger.Log.Debug().Bool("pressed", p.pressed).Msg("pressed")
+		shellColor = lipgloss.Color("10")
+		iconStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true)
 	}
+	shell := lipgloss.NewStyle().Foreground(shellColor).Render(buttonShell(btnW, btnH, p.pressed))
 	iconW := lipgloss.Width(p.icon)
 	x := 1 + (btnW-2-iconW)/2
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(shell).ID("shell"),
-		lipgloss.NewLayer(p.style.Render(p.icon)).X(x).Y(1).ID("icon"),
+		lipgloss.NewLayer(iconStyle.Render(p.icon)).X(x).Y(1).ID("icon"),
 	}
 	return lipgloss.NewCompositor(layers...).Render()
 }

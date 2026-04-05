@@ -32,8 +32,8 @@ func (c *Cassette) cassetteLayers() []*lipgloss.Layer {
 	leftReelRaw := c.spokeLeft.View()
 	rightReelRaw := c.spokeRight.View()
 	
-	// Neon purple spinning reels
-	reelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#C678DD"))
+	// Neon magenta spinning reels
+	reelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("13"))
 	leftReel := reelStyle.Render(leftReelRaw)
 	rightReel := reelStyle.Render(rightReelRaw)
 	
@@ -54,7 +54,7 @@ func (c *Cassette) cassetteLayers() []*lipgloss.Layer {
 
 	sidePad := 3
 	centerGap := maxInt(windowTrimW+4, tapeWindowW+6, 12)
-	innerW := sidePad*2 + leftReelW + centerGap + leftReelW + 1
+	innerW := sidePad*2 + leftReelW + centerGap + leftReelW
 	innerW = maxInt(innerW, labelW+6, subtitleW+6, writeProtectW+6)
 
 	reelYInner := 3
@@ -120,18 +120,18 @@ func cassetteShell(innerW, innerH int) string {
 		lines = append(lines, "│"+fill+"│")
 	}
 	lines = append(lines, "╰─"+strings.Repeat("═", innerW-2)+"─╯")
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")).Render(strings.Join(lines, "\n"))
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Render(strings.Join(lines, "\n"))
 }
 
 func cassetteLabel() string {
 	// Retro cassette label with hot pink neon on dark chrome
 	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#FF6AC1")). // hot pink neon
-		Background(lipgloss.Color("#1E1E2E")). // deep dark bg
+		Foreground(lipgloss.Color("13")). // bright magenta
+		Background(lipgloss.Color("0")).  // black bg
 		Bold(true)
 	accentStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#E5C07B")). // warm gold accent
-		Background(lipgloss.Color("#1E1E2E")).
+		Foreground(lipgloss.Color("11")). // bright yellow
+		Background(lipgloss.Color("0")).
 		Bold(true)
 	return accentStyle.Render(" ★ ") +
 		labelStyle.Render(" LAZYSPOTIFY ") +
@@ -141,7 +141,7 @@ func cassetteLabel() string {
 
 func cassetteSubtitle() string {
 	style := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#ABB2BF")).
+		Foreground(lipgloss.Color("7")).
 		Faint(true)
 	return style.Render("TYPE I  │  STEREO  │  SIDE A")
 }
@@ -152,32 +152,32 @@ func cassetteWindowTrim() string {
 		"║ ◎ ║ ╌╌╌╌╌╌ ║ ◎ ║",
 		"╚═══╝        ╚═══╝",
 	}
-	// Warm silver plastic bevel with slight teal tint
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#7EC8E3")).Render(strings.Join(lines, "\n"))
+	// Bright cyan bevel
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Render(strings.Join(lines, "\n"))
 }
 
 func cassetteTapeWindow() string {
 	lines := []string{
-		"╭────────╮",
-		"│▓▓░░░░▓▓│",
-		"│▓░    ░▓│",
-		"╰────────╯",
+		"╭──────────╮",
+		"│▓▓░░░░░░▓▓│",
+		"│▓░      ░▓│",
+		"╰──────────╯",
 	}
-	// Deep amber magnetic tape window
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#D19A66")).Render(strings.Join(lines, "\n"))
+	// Yellow magnetic tape window
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Render(strings.Join(lines, "\n"))
 }
 
 func cassetteWriteProtect() string {
 	badgeStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#E5C07B")).
+		Foreground(lipgloss.Color("11")).
 		Bold(true)
-	bracketStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370"))
+	bracketStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 	return bracketStyle.Render("⟦ ") + badgeStyle.Render("CHROME") + bracketStyle.Render(" · IEC II ⟧")
 }
 
 func cassetteScrew() string {
-	// Brushed chrome Phillips head screw
-	return lipgloss.NewStyle().Foreground(lipgloss.Color("#C8CCD4")).Render("x")
+	// Bright white screw
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Render("x")
 }
 
 func maxInt(values ...int) int {

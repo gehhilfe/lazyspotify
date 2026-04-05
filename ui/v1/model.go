@@ -19,6 +19,7 @@ type Model struct {
 	player        *player.Player
 	spotifyClient *spotify.SpotifyClient
 	cassettePlayer CassettePlayer
+	mediaCenter   MediaCenter
 	width         int
 	height        int
 }
