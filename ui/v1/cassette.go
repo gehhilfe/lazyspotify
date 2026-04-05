@@ -6,18 +6,6 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-var (
-	shellStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("252"))
-	labelStyle  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Background(lipgloss.Color("24")).Padding(0, 1)
-	metaStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("250"))
-	reelStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("255"))
-	trimStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
-	windowStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("229"))
-	footStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	screwStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	shineStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("255"))
-)
-
 type Cassette struct {
 	spokeLeft  Spoke
 	spokeRight Spoke
@@ -41,27 +29,33 @@ func (c *Cassette) View() string {
 }
 
 func (c *Cassette) cassetteLayers() []*lipgloss.Layer {
-	leftReel := c.spokeLeft.View()
-	rightReel := c.spokeRight.View()
+	leftReelRaw := c.spokeLeft.View()
+	rightReelRaw := c.spokeRight.View()
+	
+	// Neon purple spinning reels
+	reelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#C678DD"))
+	leftReel := reelStyle.Render(leftReelRaw)
+	rightReel := reelStyle.Render(rightReelRaw)
+	
 	label := cassetteLabel()
-	meta := cassetteMeta()
+	subtitle := cassetteSubtitle()
 	windowTrim := cassetteWindowTrim()
 	tapeWindow := cassetteTapeWindow()
-	foot := cassetteDeckFoot()
-	shine := cassetteShine()
+	writeProtect := cassetteWriteProtect()
 
-	leftReelW, leftReelH := lipgloss.Width(leftReel), lipgloss.Height(leftReel)
-	metaW := lipgloss.Width(meta)
+	// Use unstyled widths for calculations to avoid ansi quirks, 
+	// though lipgloss.Width handles ansi safely.
+	leftReelW, leftReelH := lipgloss.Width(leftReelRaw), lipgloss.Height(leftReelRaw)
 	windowTrimW, windowTrimH := lipgloss.Width(windowTrim), lipgloss.Height(windowTrim)
 	tapeWindowW, tapeWindowH := lipgloss.Width(tapeWindow), lipgloss.Height(tapeWindow)
 	labelW := lipgloss.Width(label)
-	footW := lipgloss.Width(foot)
-	shineW := lipgloss.Width(shine)
+	subtitleW := lipgloss.Width(subtitle)
+	writeProtectW := lipgloss.Width(writeProtect)
 
 	sidePad := 3
 	centerGap := maxInt(windowTrimW+4, tapeWindowW+6, 12)
 	innerW := sidePad*2 + leftReelW + centerGap + leftReelW
-	innerW = maxInt(innerW, labelW+6, metaW+6, footW*2+12)
+	innerW = maxInt(innerW, labelW+6, subtitleW+6, writeProtectW+6)
 
 	reelYInner := 3
 	innerH := maxInt(reelYInner+leftReelH+3, 11)
@@ -80,92 +74,110 @@ func (c *Cassette) cassetteLayers() []*lipgloss.Layer {
 
 	labelX := 1 + (innerW-labelW)/2
 	labelY := 2
-	metaX := 1 + (innerW-metaW)/2
-	metaY := labelY + 1
+	subtitleX := 1 + (innerW-subtitleW)/2
+	subtitleY := labelY + 1
 	windowTrimX := gapStart + (gapWidth-windowTrimW)/2
 	windowTrimY := leftReelY + (leftReelH-windowTrimH)/2 - 1
 	tapeWindowX := gapStart + (gapWidth-tapeWindowW)/2
 	tapeWindowY := leftReelY + (leftReelH-tapeWindowH)/2 + 1
 
-	leftFootX := 1 + sidePad
-	leftFootY := shellH - 4
-	rightFootX := shellW - 1 - sidePad - footW
-	rightFootY := leftFootY
+	writeProtectX := 1 + (innerW-writeProtectW)/2
+	writeProtectY := shellH - 3
 
 	screwOffsetX := 2
 	topScrewY := 1
 	bottomScrewY := shellH - 3
-	shineX := shellW - 1 - shineW - 2
-	shineY := 1
 
 	return []*lipgloss.Layer{
-		lipgloss.NewLayer(shellStyle.Render(shell)).ID("shell"),
-		lipgloss.NewLayer(labelStyle.Render(label)).X(labelX).Y(labelY).ID("label"),
-		lipgloss.NewLayer(metaStyle.Render(meta)).X(metaX).Y(metaY).ID("meta"),
-		lipgloss.NewLayer(reelStyle.Render(leftReel)).X(leftReelX).Y(leftReelY).ID("left-reel"),
-		lipgloss.NewLayer(reelStyle.Render(rightReel)).X(rightReelX).Y(rightReelY).ID("right-reel"),
-		lipgloss.NewLayer(trimStyle.Render(windowTrim)).X(windowTrimX).Y(windowTrimY).ID("window-trim"),
-		lipgloss.NewLayer(windowStyle.Render(tapeWindow)).X(tapeWindowX).Y(tapeWindowY).ID("tape-window"),
-		lipgloss.NewLayer(footStyle.Render(foot)).X(leftFootX).Y(leftFootY).ID("left-foot"),
-		lipgloss.NewLayer(footStyle.Render(foot)).X(rightFootX).Y(rightFootY).ID("right-foot"),
-		lipgloss.NewLayer(screwStyle.Render(cassetteScrew())).X(screwOffsetX).Y(topScrewY).ID("screw-tl"),
-		lipgloss.NewLayer(screwStyle.Render(cassetteScrew())).X(shellW - screwOffsetX - 1).Y(topScrewY).ID("screw-tr"),
-		lipgloss.NewLayer(screwStyle.Render(cassetteScrew())).X(screwOffsetX).Y(bottomScrewY).ID("screw-bl"),
-		lipgloss.NewLayer(screwStyle.Render(cassetteScrew())).X(shellW - screwOffsetX - 1).Y(bottomScrewY).ID("screw-br"),
-		lipgloss.NewLayer(shineStyle.Render(shine)).X(shineX).Y(shineY).ID("shine"),
+		lipgloss.NewLayer(shell).ID("shell"),
+		lipgloss.NewLayer(label).X(labelX).Y(labelY).ID("label"),
+		lipgloss.NewLayer(subtitle).X(subtitleX).Y(subtitleY).ID("subtitle"),
+		lipgloss.NewLayer(leftReel).X(leftReelX).Y(leftReelY).ID("left-reel"),
+		lipgloss.NewLayer(rightReel).X(rightReelX).Y(rightReelY).ID("right-reel"),
+		lipgloss.NewLayer(windowTrim).X(windowTrimX).Y(windowTrimY).ID("window-trim"),
+		lipgloss.NewLayer(tapeWindow).X(tapeWindowX).Y(tapeWindowY).ID("tape-window"),
+		lipgloss.NewLayer(writeProtect).X(writeProtectX).Y(writeProtectY).ID("write-protect"),
+		lipgloss.NewLayer(cassetteScrew()).X(screwOffsetX).Y(topScrewY).ID("screw-tl"),
+		lipgloss.NewLayer(cassetteScrew()).X(shellW-screwOffsetX-1).Y(topScrewY).ID("screw-tr"),
+		lipgloss.NewLayer(cassetteScrew()).X(screwOffsetX).Y(bottomScrewY).ID("screw-bl"),
+		lipgloss.NewLayer(cassetteScrew()).X(shellW-screwOffsetX-1).Y(bottomScrewY).ID("screw-br"),
 	}
 }
 
 func cassetteShell(innerW, innerH int) string {
 	lines := make([]string, 0, innerH+2)
-	lines = append(lines, "."+strings.Repeat("-", innerW)+".")
+	// Top edge with rounded corners and decorative double-line accent
+	lines = append(lines, "╭─"+strings.Repeat("═", innerW-2)+"─╮")
 	for i := 0; i < innerH; i++ {
 		fill := strings.Repeat(" ", innerW)
-		if i == innerH-1 {
-			fill = strings.Repeat("_", innerW)
+		if i == 0 {
+			// Subtle inner ridge near the top
+			fill = "┄" + strings.Repeat("┈", innerW-2) + "┄"
 		}
-		lines = append(lines, "|"+fill+"|")
+		if i == innerH-1 {
+			fill = strings.Repeat("─", innerW)
+		}
+		lines = append(lines, "│"+fill+"│")
 	}
-	lines = append(lines, "'"+strings.Repeat("-", innerW)+"'")
-	return strings.Join(lines, "\n")
+	lines = append(lines, "╰─"+strings.Repeat("═", innerW-2)+"─╯")
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370")).Render(strings.Join(lines, "\n"))
 }
 
 func cassetteLabel() string {
-	return "LAZYSPOTIFY  C-60"
+	// Retro cassette label with hot pink neon on dark chrome
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#FF6AC1")). // hot pink neon
+		Background(lipgloss.Color("#1E1E2E")). // deep dark bg
+		Bold(true)
+	accentStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#E5C07B")). // warm gold accent
+		Background(lipgloss.Color("#1E1E2E")).
+		Bold(true)
+	return accentStyle.Render(" ★ ") +
+		labelStyle.Render(" LAZYSPOTIFY ") +
+		accentStyle.Render("C-60") +
+		accentStyle.Render(" ★ ")
 }
 
-func cassetteMeta() string {
-	return "TYPE I  |  STEREO  |  SIDE A"
+func cassetteSubtitle() string {
+	style := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#ABB2BF")).
+		Faint(true)
+	return style.Render("TYPE I  │  STEREO  │  SIDE A")
 }
 
 func cassetteWindowTrim() string {
 	lines := []string{
-		".___          ___.",
-		"|   |        |   |",
-		"'---'        '---'",
+		"╔═══╗        ╔═══╗",
+		"║ ◎ ║ ╌╌╌╌╌╌ ║ ◎ ║",
+		"╚═══╝        ╚═══╝",
 	}
-	return strings.Join(lines, "\n")
+	// Warm silver plastic bevel with slight teal tint
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#7EC8E3")).Render(strings.Join(lines, "\n"))
 }
 
 func cassetteTapeWindow() string {
 	lines := []string{
-		".------.",
-		"|==  ==|",
-		"'------'",
+		"╭────────╮",
+		"│▓▓░░░░▓▓│",
+		"│▓░    ░▓│",
+		"╰────────╯",
 	}
-	return strings.Join(lines, "\n")
+	// Deep amber magnetic tape window
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#D19A66")).Render(strings.Join(lines, "\n"))
 }
 
-func cassetteDeckFoot() string {
-	return "[====]"
-}
-
-func cassetteShine() string {
-	return "///"
+func cassetteWriteProtect() string {
+	badgeStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#E5C07B")).
+		Bold(true)
+	bracketStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("#5C6370"))
+	return bracketStyle.Render("⟦ ") + badgeStyle.Render("CHROME") + bracketStyle.Render(" · IEC II ⟧")
 }
 
 func cassetteScrew() string {
-	return "*"
+	// Brushed chrome Phillips head screw
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#C8CCD4")).Render("x")
 }
 
 func maxInt(values ...int) int {
