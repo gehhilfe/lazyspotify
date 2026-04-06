@@ -7,6 +7,7 @@ import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"github.com/dubeyKartikay/lazyspotify/core/logger"
 )
 
 type mediaList struct {
@@ -56,20 +57,18 @@ func newMediaList() mediaList {
 		PaddingLeft(1)
 	delegate.SetSpacing(1)
 	listModel := list.New(nil, delegate, 0, 0)
+	
 	styles := listModel.Styles
-	styles.Title = styles.Title.
-		Foreground(lipgloss.Color("10")).
-		UnsetBackground().
-		Bold(true)
+	styles.Title = styles.Title.MarginLeft(1)
 
-	styles.TitleBar = lipgloss.NewStyle()
+	styles.TitleBar = lipgloss.NewStyle().MarginBottom(1)
 	styles.NoItems = styles.NoItems.Foreground(lipgloss.Color("8"))
 	listModel.Styles = styles
 	listModel.SetShowHelp(false)
 	listModel.SetShowStatusBar(false)
 	listModel.SetShowFilter(false)
 	listModel.SetShowPagination(false)
-
+	listModel.InfiniteScrolling = true
 	listModel.Title = listTitle(Loading)
 
 	return mediaList{
@@ -147,11 +146,15 @@ func (m *mediaList) StartLoading() tea.Cmd {
 func (m *mediaList) SetContent(entities []Entity, kind ListKind) tea.Cmd {
 	items := make([]list.Item, 0, len(entities))
 	for _, entity := range entities {
+		if(entity.Name == "") {
+			continue
+		}
 		items = append(items, mediaListItem{entity: entity})
 	}
 	m.kind = kind
 	m.items = entities
 	setItemsCmd := m.list.SetItems(items)
+	logger.Log.Info().Any("items", entities).Int("kind", int(kind)).Msg("set content")
 	m.list.StopSpinner()
 	m.list.Title = listTitle(kind)
 	return setItemsCmd

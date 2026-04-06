@@ -68,7 +68,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(startCmd, fetchCmd, centerCmd)
 	case startupCompleteMsg:
 		requestCmd := tea.Cmd(func() tea.Msg {
-			return MediaRequest{kind: GetUserLibrary, offset: 0}
+			return MediaRequestForListKind(Playlists, 0)
 		})
 		return m, tea.Batch(m.waitForPlayerReady(), m.waitForPlayerEvent(), requestCmd, centerCmd)
 	case playerReadyMsg:
@@ -101,6 +101,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
+		case "tab":
+			nextKind := m.mediaCenter.NextListKind()
+			requestCmd := tea.Cmd(func() tea.Msg {
+				return MediaRequestForListKind(nextKind, 0)
+			})
+			return m, tea.Batch(requestCmd, centerCmd)
 		case " ", "p":
 			m.playing = !m.playing
 			if m.playing {

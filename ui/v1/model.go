@@ -321,23 +321,74 @@ func (m *Model) HandleButtonPress(buttonKind ButtonKind) tea.Cmd {
 
 func (m *Model) HandleMediaRequest(mediaRequest MediaRequest) tea.Cmd {
 	switch mediaRequest.kind {
-	case GetUserLibrary:
-		return m.handleGetUserLibrary(mediaRequest.offset)
+	case GetUserPlaylists:
+		return m.handleGetUserPlaylists(mediaRequest.offset)
+	case GetSavedTracks:
+		return m.handleGetSavedTracks(mediaRequest.offset)
+	case GetSavedAlbums:
+		return m.handleGetSavedAlbums(mediaRequest.offset)
+	case GetFollowedArtists:
+		return m.handleGetFollowedArtists()
 	}
 	return nil
 }
 
-func (m *Model) handleGetUserLibrary(offset int) tea.Cmd {
+func (m *Model) handleGetUserPlaylists(offset int) tea.Cmd {
 	if m.spotifyClient == nil {
 		return nil
 	}
 
 	return func() tea.Msg {
-		p, err := m.spotifyClient.GetUserLibrary(context.Background(), offset)
+		p, err := m.spotifyClient.GetUserPlaylists(context.Background(), offset)
 		if err != nil {
 			return mediaLoadErrMsg{err: err}
 		}
 		e := AdaptSpotifyPlaylistPage(p)
 		return mediaLoadedMsg{entities: e, kind: Playlists}
+	}
+}
+
+func (m *Model) handleGetSavedTracks(offset int) tea.Cmd {
+	if m.spotifyClient == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		p, err := m.spotifyClient.GetSavedTracks(context.Background(), offset)
+		if err != nil {
+			return mediaLoadErrMsg{err: err}
+		}
+		e := AdaptSpotifySavedTrackPage(p)
+		return mediaLoadedMsg{entities: e, kind: Tracks}
+	}
+}
+
+func (m *Model) handleGetSavedAlbums(offset int) tea.Cmd {
+	if m.spotifyClient == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		p, err := m.spotifyClient.GetSavedAlbums(context.Background(), offset)
+		if err != nil {
+			return mediaLoadErrMsg{err: err}
+		}
+		e := AdaptSpotifySavedAlbumPage(p)
+		return mediaLoadedMsg{entities: e, kind: Albums}
+	}
+}
+
+func (m *Model) handleGetFollowedArtists() tea.Cmd {
+	if m.spotifyClient == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		p, err := m.spotifyClient.GetFollowedArtists(context.Background())
+		if err != nil {
+			return mediaLoadErrMsg{err: err}
+		}
+		e := AdaptSpotifyFollowedArtistsPage(p)
+		return mediaLoadedMsg{entities: e, kind: Artists}
 	}
 }
