@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/dubeyKartikay/lazyspotify/core/auth"
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
 	"github.com/dubeyKartikay/lazyspotify/core/player"
@@ -32,6 +33,23 @@ type SongInfo struct {
 
 type VolumeInfo struct {
 	volume int
+}
+
+type mediaLoadedMsg struct {
+	entities []Entity
+	kind     ListKind
+}
+
+type mediaLoadErrMsg struct {
+	err error
+}
+
+type startupCompleteMsg struct{}
+
+type playerReadyMsg struct{}
+
+type playerReadyErrMsg struct {
+	err error
 }
 
 func (m *Model) playPause() {
@@ -211,25 +229,54 @@ func (m *Model) start() error {
 		return fmt.Errorf("failed to create player")
 	}
 
-	err = m.player.WaitTillReady()
-
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("failed to wait for player to be ready")
-		return err
-	}
-	m.playDailyMix()
-
 	return nil
 }
 
-func (m *Model) NextFrame()  {
+func (m *Model) waitForPlayerReady() tea.Cmd {
+	if m.player == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		err := m.player.WaitTillReady()
+		if err != nil {
+			return playerReadyErrMsg{err: err}
+		}
+		return playerReadyMsg{}
+	}
+}
+
+func (m *Model) NextFrame() {
 	m.mediaCenter.cassettePlayer.NextFrame(m.playing)
 }
 
-func (m *Model) NextButtonFrame(){
+func (m *Model) NextButtonFrame() {
 	m.mediaCenter.cassettePlayer.NextButtonFrame()
 }
 
 func (m *Model) HandleButtonPress(buttonKind ButtonKind) {
 	m.mediaCenter.cassettePlayer.HandleButtonPress(buttonKind)
+}
+
+func (m *Model) HandleMediaRequest(mediaRequest MediaRequest) tea.Cmd {
+	switch mediaRequest.kind {
+	case GetUserLibrary:
+		return m.handleGetUserLibrary(mediaRequest.offset)
+	}
+	return nil
+}
+
+func (m *Model) handleGetUserLibrary(offset int) tea.Cmd {
+	if m.spotifyClient == nil {
+		return nil
+	}
+
+	return func() tea.Msg {
+		p, err := m.spotifyClient.GetUserLibrary(context.Background(), offset)
+		if err != nil {
+			return mediaLoadErrMsg{err: err}
+		}
+		e := AdaptSpotifyPlaylistPage(p)
+		return mediaLoadedMsg{entities: e, kind: Playlists}
+	}
 }

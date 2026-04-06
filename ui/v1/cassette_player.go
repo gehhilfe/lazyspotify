@@ -62,13 +62,13 @@ func (c *CassettePlayer) View() string {
 	}
 
 	playerW := max(lipgloss.Width(buttons), cassetteW)+2
-	playerH := cassetteH + lipgloss.Height(buttons)+2
+	playerH := cassetteH + lipgloss.Height(buttons)
 	player := c.style.Render(playerShell(playerW, playerH))
 	cassetteTapeX := playerW - cassetteW - 2
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(player).ID("player"),
-		lipgloss.NewLayer(cassette).X(cassetteTapeX).Y(2).ID("cassette"),
-		lipgloss.NewLayer(buttons).X(cassetteTapeX).Y(2 + cassetteH).ID("buttons"),
+		lipgloss.NewLayer(cassette).X(cassetteTapeX).Y(0).ID("cassette"),
+		lipgloss.NewLayer(buttons).X(cassetteTapeX).Y(playerH-lipgloss.Height(buttons)).ID("buttons"),
 	}
 	compositor := lipgloss.NewCompositor(layers...)
 	player = compositor.Render()
@@ -76,9 +76,9 @@ func (c *CassettePlayer) View() string {
 }
 
 func playerShell(innerW int, innerH int) string {
-	lines := make([]string, 0, innerH+2)
+	lines := make([]string, 0, innerH)
 	lines = append(lines, strings.Repeat(" ", innerW))
-	for range innerH {
+	for range innerH-2 {
 		fill := strings.Repeat(" ", innerW)
 		lines = append(lines,fill)
 	}

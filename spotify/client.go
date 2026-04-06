@@ -46,13 +46,13 @@ func (s *SpotifyClient) GetFirstSavedTrack(ctx context.Context) (string, error) 
   return string(tracks.Tracks[0].URI), nil
 }
 
-func  (s *SpotifyClient) GetUserLibrary(ctx context.Context) (string, error) {
-	user, err := s.client.CurrentUser(ctx)
+func  (s *SpotifyClient) GetUserLibrary(ctx context.Context,offset int) (*spotify.SimplePlaylistPage, error) {
+	list, err := s.client.CurrentUsersPlaylists(ctx,spotify.Offset(offset))
 	if(err != nil) {
 		logger.Log.Error().Err(err).Msg("error getting user library")
-		return "", err
+		return nil,err
 	}
-	return user.ID, nil
+	return list, nil
 	
 }
 func IsAuthError(err error) bool {
