@@ -8,6 +8,7 @@ import (
 	"github.com/dubeyKartikay/lazyspotify/core/auth"
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
 	"github.com/dubeyKartikay/lazyspotify/core/player"
+	"github.com/dubeyKartikay/lazyspotify/core/ticker"
 	"github.com/dubeyKartikay/lazyspotify/core/utils"
 	"github.com/dubeyKartikay/lazyspotify/spotify"
 )
@@ -246,16 +247,19 @@ func (m *Model) waitForPlayerReady() tea.Cmd {
 	}
 }
 
-func (m *Model) NextFrame() {
+func (m *Model) NextFrame() tea.Cmd {
 	m.mediaCenter.cassettePlayer.NextFrame(m.playing)
+	return ticker.DoTickFast()
 }
 
-func (m *Model) NextButtonFrame() {
+func (m *Model) NextButtonFrame() tea.Cmd {
 	m.mediaCenter.cassettePlayer.NextButtonFrame()
+	return nil
 }
 
-func (m *Model) HandleButtonPress(buttonKind ButtonKind) {
+func (m *Model) HandleButtonPress(buttonKind ButtonKind) tea.Cmd {
 	m.mediaCenter.cassettePlayer.HandleButtonPress(buttonKind)
+	return ticker.DoTickSlow()
 }
 
 func (m *Model) HandleMediaRequest(mediaRequest MediaRequest) tea.Cmd {

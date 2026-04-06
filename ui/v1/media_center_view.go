@@ -8,13 +8,16 @@ import (
 
 func (m *MediaCenter) View() string {
 	cassette := m.cassettePlayer.View()
-	cassetteH := lipgloss.Height(cassette)
+	cassetteW,cassetteH := lipgloss.Size(cassette)
 	listW := 30
 	listH := cassetteH
 	m.visibleList.SetSize(listW, listH)
 	mediaList := m.visibleList.View()
+	m.displayScreen.SetSize(listW + cassetteW, 3)
 	v := lipgloss.JoinHorizontal(lipgloss.Top, mediaList, cassette)
-	return v
+	v = lipgloss.JoinVertical(lipgloss.Left,m.displayScreen.View(),v)
+	shell := lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()).Render(v)
+	return shell
 }
 
 func outerShell(width int, height int) string {

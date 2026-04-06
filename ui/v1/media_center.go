@@ -49,18 +49,20 @@ const (
 type MediaCenter struct {
 	visibleList    mediaList
 	cassettePlayer CassettePlayer
+	displayScreen  displayScreen
 }
 
 func NewMediaCenter() MediaCenter {
 	return MediaCenter{
 		cassettePlayer: NewCassettePlayer(),
 		visibleList:    newMediaList(),
+		displayScreen:  newDisplayScreen(),
 	}
 }
 
 func (m *MediaCenter) Update(msg tea.Msg) tea.Cmd {
-	cmd := m.visibleList.Update(msg)
-	return cmd
+	listCmd := m.visibleList.Update(msg)
+	return listCmd
 }
 func (m *MediaCenter) StartLoading() tea.Cmd {
 	return m.visibleList.StartLoading()

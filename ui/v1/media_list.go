@@ -9,21 +9,21 @@ import (
 )
 
 type mediaList struct {
-	kind  ListKind
-	items []Entity
-	list  list.Model
-	styles   styles
-	width    int
-	height   int
+	kind   ListKind
+	items  []Entity
+	list   list.Model
+	styles styles
+	width  int
+	height int
 }
 
 type styles struct {
-	panel  lipgloss.Style
+	panel lipgloss.Style
 }
 
 func defaultStyles() styles {
 	return styles{
-		panel:  lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()),
+		panel: lipgloss.NewStyle().BorderStyle(lipgloss.RoundedBorder()),
 	}
 }
 
@@ -38,25 +38,21 @@ func newMediaList() mediaList {
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
 		Foreground(lipgloss.Color("14")).
 		Bold(true).
-		BorderLeft(true).
-		BorderForeground(lipgloss.Color("14")).
+		BorderLeft(false).
 		PaddingLeft(1)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
 		Foreground(lipgloss.Color("117")).
-		BorderLeft(true).
-		BorderForeground(lipgloss.Color("14")).
+		BorderLeft(false).
 		PaddingLeft(1)
-	delegate.SetSpacing(0)
+	delegate.SetSpacing(1)
 	listModel := list.New(nil, delegate, 0, 0)
 	styles := listModel.Styles
 	styles.Title = styles.Title.
 		Foreground(lipgloss.Color("10")).
 		UnsetBackground().
 		Bold(true)
-	styles.TitleBar = styles.TitleBar.
-		Foreground(lipgloss.Color("8")).
-		BorderBottom(true).
-		BorderForeground(lipgloss.Color("8"))
+
+	styles.TitleBar = lipgloss.NewStyle()
 	styles.NoItems = styles.NoItems.Foreground(lipgloss.Color("8"))
 	listModel.Styles = styles
 	listModel.SetShowHelp(false)
@@ -67,16 +63,18 @@ func newMediaList() mediaList {
 	listModel.Title = listTitle(Loading)
 
 	return mediaList{
-		kind:  Loading,
-		list:  listModel,
+		kind:   Loading,
+		list:   listModel,
 		styles: defaultStyles(),
 	}
 }
 
-
 func (m mediaList) View() string {
 	panel := m.styles.panel.Width(m.width).Height(m.height).Render("")
-	m.list.SetSize(m.width-4, m.height-2)
+	listWidth := m.width - 4
+	listHeight := m.height - 2
+	m.list.SetSize(listWidth, listHeight)
+
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(panel).ID("panel"),
 		lipgloss.NewLayer(m.list.View()).X(1).Y(1).ID("list"),
@@ -93,6 +91,9 @@ func (m *mediaList) Update(msg tea.Msg) tea.Cmd {
 func (m *mediaList) SetSize(width, height int) {
 	m.width = width
 	m.height = height
+
+	listStyles := m.list.Styles
+	m.list.Styles = listStyles
 }
 func (m *mediaList) StartLoading() tea.Cmd {
 	m.kind = Loading
@@ -101,7 +102,6 @@ func (m *mediaList) StartLoading() tea.Cmd {
 	m.list.SetItems(nil)
 	return tea.Batch(
 		m.list.StartSpinner(),
-		m.list.NewStatusMessage("Fetching your library..."),
 	)
 }
 

@@ -2,9 +2,6 @@ package v1
 
 import (
 	"strings"
-	"time"
-
-	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
 )
@@ -193,11 +190,4 @@ func (p *PlayerButton) View() string {
 		lipgloss.NewLayer(iconStyle.Render(p.icon)).X(x).Y(1).ID("icon"),
 	}
 	return lipgloss.NewCompositor(layers...).Render()
-}
-
-type NextButtonFrameMsg struct{}
-func DoTickButtonPress() tea.Cmd {
-	return tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
-		return NextButtonFrameMsg{}
-	})
 }

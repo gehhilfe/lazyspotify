@@ -6,6 +6,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
+	"github.com/dubeyKartikay/lazyspotify/core/ticker"
 )
 
 func newModel() Model {
@@ -26,7 +27,7 @@ func (m *Model) Init() tea.Cmd {
 		return startupCompleteMsg{}
 	}
 
-	return tea.Batch(cmd, DoTickSpokes())
+	return tea.Batch(cmd, ticker.StartTicker())
 }
 
 func (m *Model) View() tea.View {
@@ -52,12 +53,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.setSize(msg.Width, msg.Height)
 		return m, centerCmd
-	case NextSpokeFrameMsg:
-		m.NextFrame()
-		return m, tea.Batch(DoTickSpokes(), centerCmd)
-	case NextButtonFrameMsg:
-		m.NextButtonFrame()
-		return m, centerCmd
+	case ticker.TickFastMsg:
+		cmd = m.NextFrame()
+		return m, tea.Batch(cmd, centerCmd)
+	case ticker.TickMsg:
+		cmd = m.mediaCenter.displayScreen.NextFrame()
+		return m, tea.Batch(cmd, centerCmd)
+	case ticker.TickSlowMsg:
+		cmd = m.NextButtonFrame()
+		return m, tea.Batch(cmd, centerCmd)
 	case MediaRequest:
 		startCmd := m.mediaCenter.StartLoading()
 		fetchCmd := m.HandleMediaRequest(msg)
@@ -92,32 +96,33 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ", "p":
 			m.playing = !m.playing
 			if m.playing {
-				m.HandleButtonPress(PlayButton)
+				cmd = m.HandleButtonPress(PlayButton)
+				
 			} else {
-				m.HandleButtonPress(PauseButton)
+				cmd = m.HandleButtonPress(PauseButton)
 			}
 			m.playPause()
-			return m, tea.Batch(cmd, DoTickButtonPress(), centerCmd)
+			return m, tea.Batch(cmd, centerCmd)
 		case "right", "l", "ctrl+f", "]":
-			m.HandleButtonPress(SeekForwardButton)
+			cmd = m.HandleButtonPress(SeekForwardButton)
 			m.seekForward()
-			return m, tea.Batch(cmd, DoTickButtonPress(), centerCmd)
+			return m, tea.Batch(cmd, centerCmd)
 		case "left", "h", "ctrl+b", "[":
-			m.HandleButtonPress(SeekBackwardButton)
+			cmd = m.HandleButtonPress(SeekBackwardButton)
 			m.seekBackward()
-			return m, tea.Batch(cmd, DoTickButtonPress(), centerCmd)
+			return m, tea.Batch(cmd, centerCmd)
 		case "n", "ctrl+s":
-			m.HandleButtonPress(NextButton)
+			cmd = m.HandleButtonPress(NextButton)
 			m.next()
-			return m, tea.Batch(cmd, DoTickButtonPress(), centerCmd)
+			return m, tea.Batch(cmd, centerCmd)
 		case "N", "ctrl+r":
-			m.HandleButtonPress(PreviousButton)
+			cmd = m.HandleButtonPress(PreviousButton)
 			m.previous()
-			return m, tea.Batch(cmd, DoTickButtonPress(), centerCmd)
-		case "j", "down", "ctrl+p":
+			return m, tea.Batch(cmd, centerCmd)
+		case "j",  "ctrl+p":
 			m.decrementVolume()
 			return m, tea.Batch(cmd, centerCmd)
-		case "k", "up", "ctrl+n":
+		case "k",  "ctrl+n":
 			m.incrementVolume()
 			return m, tea.Batch(cmd, centerCmd)
 		}

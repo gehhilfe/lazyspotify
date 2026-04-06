@@ -1,9 +1,6 @@
 package v1
 
 import (
-	"time"
-
-	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
@@ -21,8 +18,6 @@ func NewFrame(view string) Frame {
 		view: view,
 	}
 }
-
-type NextSpokeFrameMsg struct{}
 
 func setFrames() []Frame {
 	top := " .---. "
@@ -61,8 +56,3 @@ func (s *Spoke) NextFrame() {
 	s.currentFrame = (s.currentFrame + 1) % len(s.Frames)
 }
 
-func DoTickSpokes() tea.Cmd {
-	return tea.Tick(180*time.Millisecond, func(t time.Time) tea.Msg {
-		return NextSpokeFrameMsg{}
-	})
-}
