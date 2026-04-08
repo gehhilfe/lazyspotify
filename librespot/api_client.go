@@ -182,7 +182,7 @@ func (l *LibrespotApiClient) ResolvePlaylistTracks(ctx context.Context, uri stri
 		offset = 0
 	}
 	if limit <= 0 {
-		limit = 50
+		limit = 10
 	}
 
 	query := url.Values{}

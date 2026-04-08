@@ -50,7 +50,7 @@ func (s *SpotifyClient) GetFirstSavedTrack(ctx context.Context) (string, error) 
 }
 
 func (s *SpotifyClient) GetUserPlaylists(ctx context.Context, offset int) (*spotify.SimplePlaylistPage, error) {
-	list, err := s.client.CurrentUsersPlaylists(ctx, spotify.Offset(offset))
+	list, err := s.client.CurrentUsersPlaylists(ctx, spotify.Offset(offset), spotify.Limit(10))
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("error getting user playlists")
 		return nil, err
@@ -59,7 +59,7 @@ func (s *SpotifyClient) GetUserPlaylists(ctx context.Context, offset int) (*spot
 }
 
 func (s *SpotifyClient) GetSavedTracks(ctx context.Context, offset int) (*spotify.SavedTrackPage, error) {
-	tracks, err := s.client.CurrentUsersTracks(ctx, spotify.Offset(offset))
+	tracks, err := s.client.CurrentUsersTracks(ctx, spotify.Offset(offset), spotify.Limit(10))
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("error getting saved tracks")
 		return nil, err
@@ -68,7 +68,7 @@ func (s *SpotifyClient) GetSavedTracks(ctx context.Context, offset int) (*spotif
 }
 
 func (s *SpotifyClient) GetSavedAlbums(ctx context.Context, offset int) (*spotify.SavedAlbumPage, error) {
-	albums, err := s.client.CurrentUsersAlbums(ctx, spotify.Offset(offset))
+	albums, err := s.client.CurrentUsersAlbums(ctx, spotify.Offset(offset), spotify.Limit(10))
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("error getting saved albums")
 		return nil, err
@@ -76,8 +76,12 @@ func (s *SpotifyClient) GetSavedAlbums(ctx context.Context, offset int) (*spotif
 	return albums, nil
 }
 
-func (s *SpotifyClient) GetFollowedArtists(ctx context.Context) (*spotify.FullArtistCursorPage, error) {
-	artists, err := s.client.CurrentUsersFollowedArtists(ctx)
+func (s *SpotifyClient) GetFollowedArtists(ctx context.Context, after string) (*spotify.FullArtistCursorPage, error) {
+	opts := []spotify.RequestOption{spotify.Limit(10)}
+	if after != "" {
+		opts = append(opts, spotify.After(after))
+	}
+	artists, err := s.client.CurrentUsersFollowedArtists(ctx, opts...)
 	if err != nil {
 		logger.Log.Error().Err(err).Msg("error getting followed artists")
 		return nil, err
@@ -90,7 +94,7 @@ func (s *SpotifyClient) GetPlaylistTracks(ctx context.Context, uri string, offse
 	if err != nil {
 		return nil, err
 	}
-	page, err := s.client.GetPlaylistItems(ctx, spotify.ID(id), spotify.Offset(offset), spotify.Limit(50))
+	page, err := s.client.GetPlaylistItems(ctx, spotify.ID(id), spotify.Offset(offset), spotify.Limit(10))
 	if err != nil {
 		logger.Log.Error().Err(err).Str("uri", uri).Int("offset", offset).Msg("error getting playlist tracks")
 		return nil, err
@@ -105,20 +109,20 @@ func (s *SpotifyClient) GetPlaylistTracks(ctx context.Context, uri string, offse
 	return tracks, nil
 }
 
-func (s *SpotifyClient) GetArtistAlbums(ctx context.Context, uri string, offset int) ([]spotify.SimpleAlbum, error) {
+func (s *SpotifyClient) GetArtistAlbums(ctx context.Context, uri string, offset int) (*spotify.SimpleAlbumPage, error) {
 	id, err := idFromURI(uri)
 	if err != nil {
 		return nil, err
 	}
-	page, err := s.client.GetArtistAlbums(ctx, spotify.ID(id), nil, spotify.Offset(offset))
+	page, err := s.client.GetArtistAlbums(ctx, spotify.ID(id), nil, spotify.Offset(offset), spotify.Limit(10))
 	if err != nil {
 		logger.Log.Error().Err(err).Str("uri", uri).Int("offset", offset).Msg("error getting artist albums")
 		return nil, err
 	}
-	return page.Albums, nil
+	return page, nil
 }
 
-func (s *SpotifyClient) GetAlbumTracks(ctx context.Context, uri string, offset int) ([]spotify.SimpleTrack, error) {
+func (s *SpotifyClient) GetAlbumTracks(ctx context.Context, uri string, offset int) (*spotify.SimpleTrackPage, error) {
 	id, err := idFromURI(uri)
 	if err != nil {
 		return nil, err
@@ -128,7 +132,7 @@ func (s *SpotifyClient) GetAlbumTracks(ctx context.Context, uri string, offset i
 		logger.Log.Error().Err(err).Str("uri", uri).Int("offset", offset).Msg("error getting album tracks")
 		return nil, err
 	}
-	return page.Tracks, nil
+	return page, nil
 }
 
 func idFromURI(uri string) (string, error) {

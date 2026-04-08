@@ -9,22 +9,20 @@ import (
 	"github.com/dubeyKartikay/lazyspotify/core/utils"
 )
 
-
-type MediaPanel struct{
+type MediaPanel struct {
 	panels []panel
 	active int
-	styles  mediaPanelstyles
-	width int
+	styles mediaPanelstyles
+	width  int
 	height int
 }
 
-type mediaPanelstyles struct{
-	panel lipgloss.Style
-	panelNav lipgloss.Style
+type mediaPanelstyles struct {
+	panel          lipgloss.Style
+	panelNav       lipgloss.Style
 	panelNavActive lipgloss.Style
-	panelNavMuted lipgloss.Style
+	panelNavMuted  lipgloss.Style
 }
-
 
 func defaultMediaPanelStyles() mediaPanelstyles {
 	return mediaPanelstyles{
@@ -38,13 +36,11 @@ func defaultMediaPanelStyles() mediaPanelstyles {
 	}
 }
 
-
-type panel struct{
-	kind           ListKind
-	lists          utils.Stack[mediaList]
-	offset         int
-	width          int
-	height         int
+type panel struct {
+	kind   ListKind
+	lists  utils.Stack[mediaList]
+	width  int
+	height int
 }
 
 func newPanel(kind ListKind) panel {
@@ -69,12 +65,12 @@ func NewMediaPanel() MediaPanel {
 	}
 }
 
-func (m * MediaPanel) SetSize(width int, height int) {
+func (m *MediaPanel) SetSize(width int, height int) {
 	m.width = width
 	m.height = height
 }
 
-func (m * MediaPanel) GetActivePanel() *panel {
+func (m *MediaPanel) GetActivePanel() *panel {
 	return &m.panels[m.active]
 }
 
@@ -91,7 +87,7 @@ func (m *MediaPanel) Update(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
-func (m * MediaPanel) View() string {
+func (m *MediaPanel) View() string {
 	panel := m.styles.panel.Width(m.width).Height(m.height).Render("")
 	panelNav := m.renderPanelNav()
 	m.GetActivePanel().SetSize(m.width, m.height)
@@ -106,21 +102,21 @@ func (m * MediaPanel) View() string {
 	return panel
 }
 
-func (m * MediaPanel) activateNextPanel() tea.Cmd {
+func (m *MediaPanel) activateNextPanel() tea.Cmd {
 	m.active = (m.active + 1) % len(m.panels)
 	return m.GetActivePanel().Prepare()
 }
 
-func (m * MediaPanel) StartLoading() tea.Cmd {
+func (m *MediaPanel) StartLoading() tea.Cmd {
 	return m.GetActivePanel().GetActiveList().StartLoading()
 }
 
-func (m * MediaPanel) SetStatus(message string) tea.Cmd {
+func (m *MediaPanel) SetStatus(message string) tea.Cmd {
 	return m.GetActivePanel().SetStatus(message)
 }
 
-func (m * MediaPanel) SetContent(entities []Entity, kind ListKind) tea.Cmd {
-	return m.GetActivePanel().SetContent(entities, kind)
+func (m *MediaPanel) SetContent(entities []Entity, kind ListKind, pagination PaginationInfo, request MediaRequest) tea.Cmd {
+	return m.GetActivePanel().SetContent(entities, kind, pagination, request)
 }
 
 func (m *MediaPanel) renderPanelNav() string {
@@ -162,6 +158,18 @@ func (p *panel) Update(msg tea.Msg) tea.Cmd {
 			if item, ok := p.GetActiveList().list.SelectedItem().(mediaListItem); ok {
 				cmd = append(cmd, item.entity.Action(p))
 			}
+		case key.Matches(msg, mediaCenterKeyMap.NextPage):
+			if req, ok := p.GetActiveList().NextPageRequest(); ok {
+				cmd = append(cmd, func() tea.Msg { return req })
+			} else {
+				cmd = append(cmd, p.GetActiveList().SetStatus("No next page"))
+			}
+		case key.Matches(msg, mediaCenterKeyMap.PrevPage):
+			if req, ok := p.GetActiveList().PrevPageRequest(); ok {
+				cmd = append(cmd, func() tea.Msg { return req })
+			} else {
+				cmd = append(cmd, p.GetActiveList().SetStatus("No previous page"))
+			}
 		case key.Matches(msg, mediaCenterKeyMap.Back):
 			if p.lists.Len() > 1 {
 				p.lists.Pop()
@@ -185,30 +193,64 @@ func (p *panel) SetSize(width int, height int) {
 func (p *panel) Prepare() tea.Cmd {
 	if p.GetActiveList().state == initilized {
 		requestCmd := tea.Cmd(func() tea.Msg {
-			return MediaRequestForListKind(p.GetActiveList().kind, p.offset)
+			return MediaRequestForListKind(p.GetActiveList().kind)
 		})
 		return requestCmd
 	}
 	return nil
 }
 
-func (p * panel) SetStatus(s string) tea.Cmd {
+func (p *panel) SetStatus(s string) tea.Cmd {
 	return p.GetActiveList().SetStatus(s)
 }
 
-func (p * panel) SetContent(entities []Entity, kind ListKind) tea.Cmd {
+func (p *panel) SetContent(entities []Entity, kind ListKind, pagination PaginationInfo, request MediaRequest) tea.Cmd {
 	cmd := p.GetActiveList().SetContent(entities, kind)
-	kinds := make([]ListKind, 0, p.lists.Len())
-	for _, list := range p.lists.Items {
-		kinds = append(kinds, list.kind)
-	}
-	p.GetActiveList().SetTitle(GenerateListTitle(kinds))
+	p.GetActiveList().ApplyPagination(pagination, request)
+	p.GetActiveList().SetTitle(stackTitle(p.lists.Items))
 	return cmd
 }
 
 func (p *panel) PrepareForKind(kind ListKind) {
-	if( kind == Tracks){
+	if kind == Tracks {
 		return
 	}
 	p.lists.Push(newMediaList(kind))
+}
+
+func stackTitle(kinds []mediaList) string {
+	if len(kinds) == 0 {
+		return "Media"
+	}
+	if len(kinds) == 1 {
+		return listTitle(kinds[0].kind)
+	}
+
+	parts := make([]string, 0, len(kinds))
+	for i := 0; i < len(kinds)-1; i++ {
+		parts = append(parts, listTitleAbbr(kinds[i].kind))
+	}
+	parts = append(parts, listTitle(kinds[len(kinds)-1].kind))
+	return strings.Join(parts, ">")
+}
+
+func listTitleAbbr(kind ListKind) string {
+	switch kind {
+	case Albums:
+		return "AL"
+	case Artists:
+		return "AR"
+	case Playlists:
+		return "PL"
+	case Tracks:
+		return "TR"
+	case Shows:
+		return "SH"
+	case Episodes:
+		return "EP"
+	case AudioBooks:
+		return "AB"
+	default:
+		return "Media"
+	}
 }

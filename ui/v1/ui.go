@@ -42,10 +42,10 @@ func (m *Model) View() tea.View {
 	helpLine := helpStyle.Width(m.width).Align(lipgloss.Center).Render(m.help.View(m.keys))
 	v := mediaCenter.View(m.playerReady)
 	modelView := lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center, lipgloss.Center).Render(v)
-  layers := []*lipgloss.Layer{
-	  lipgloss.NewLayer(modelView).ID("model"),
+	layers := []*lipgloss.Layer{
+		lipgloss.NewLayer(modelView).ID("model"),
 		lipgloss.NewLayer(helpLine).Y(m.height - lipgloss.Height(helpLine)).ID("help"),
-  }
+	}
 	compositor := lipgloss.NewCompositor(layers...)
 	modelView = compositor.Render()
 	return tea.NewView(modelView)
@@ -78,7 +78,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmd, centerCmd)
 	case MediaRequest:
 		var startCmd tea.Cmd
-		logger.Log.Info().Int("kind", int(msg.kind)).Int("offset", msg.offset).Msg("requesting media")
+		logger.Log.Info().Int("kind", int(msg.kind)).Str("cursor", msg.cursor).Int("page", msg.page).Msg("requesting media")
 		if msg.showLoading {
 			startCmd = m.mediaCenter.StartLoading()
 		}
@@ -86,7 +86,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(startCmd, fetchCmd, centerCmd)
 	case startupCompleteMsg:
 		requestCmd := tea.Cmd(func() tea.Msg {
-			return MediaRequestForListKind(Playlists, 0)
+			return MediaRequestForListKind(Playlists)
 		})
 		return m, tea.Batch(m.waitForPlayerReady(), m.waitForPlayerEvent(), requestCmd, centerCmd)
 	case playerReadyMsg:
@@ -103,7 +103,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		logger.Log.Warn().Msg("player events stream closed")
 		return m, centerCmd
 	case mediaLoadedMsg:
-		setContentCmd := m.mediaCenter.SetContent(msg.entities, msg.kind)
+		setContentCmd := m.mediaCenter.SetContent(msg.entities, msg.kind, msg.pagination, msg.request)
 		return m, tea.Batch(setContentCmd, centerCmd)
 	case mediaLoadErrMsg:
 		logger.Log.Error().Err(msg.err).Msg("failed to get user library")

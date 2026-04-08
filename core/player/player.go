@@ -3,6 +3,7 @@ package player
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
 	"github.com/dubeyKartikay/lazyspotify/librespot"
@@ -24,10 +25,17 @@ func NewPlayer(ctx context.Context, userId string, accessToken string) *Player {
 	}
 }
 
-func (p *Player) PlayTrack(ctx context.Context, uri string) error {
+func (p *Player) PlayTrack(ctx context.Context, uri string, contextURI string) error {
 	l := p.librespot
-	logger.Log.Info().Str("uri", uri).Msg("playing track")
-	res := l.Client.Play(ctx, uri, "", false)
+	playURI := uri
+	skipToURI := ""
+	if strings.HasPrefix(contextURI, "spotify:playlist:") || strings.HasPrefix(contextURI, "spotify:album:") {
+		playURI = contextURI
+		skipToURI = uri
+	}
+
+	logger.Log.Info().Str("uri", uri).Str("context_uri", contextURI).Str("play_uri", playURI).Str("skip_to_uri", skipToURI).Msg("playing track")
+	res := l.Client.Play(ctx, playURI, skipToURI, false)
 	if res >= 400 {
 		return fmt.Errorf("failed to play track: daemon returned status %d", res)
 	}

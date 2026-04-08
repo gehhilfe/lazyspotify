@@ -15,11 +15,15 @@ var mediaCenterKeyMap = struct {
 	TogglePanel key.Binding
 	Back        key.Binding
 	NextPanel   key.Binding
+	NextPage    key.Binding
+	PrevPage    key.Binding
 }{
 	Select:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
 	TogglePanel: key.NewBinding(key.WithKeys("P"), key.WithHelp("P", "toggle panel")),
 	Back:        key.NewBinding(key.WithKeys("backspace", "delete"), key.WithHelp("del", "back")),
 	NextPanel:   key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next panel")),
+	NextPage:    key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "next page")),
+	PrevPage:    key.NewBinding(key.WithKeys("ctrl+u"), key.WithHelp("ctrl+u", "prev page")),
 }
 
 type Entity struct {
@@ -44,10 +48,19 @@ const (
 
 type MediaRequest struct {
 	kind        MediaRequestKind
-	offset      int
+	cursor      string
+	page        int
 	entityURI   string
-	append      bool
+	contextURI  string
 	showLoading bool
+}
+
+type PaginationInfo struct {
+	CurrentPage int
+	TotalPages  int
+	TotalItems  int
+	HasNext     bool
+	NextCursor  string
 }
 
 func NewEntity(name string, desc string, uri string, img string) Entity {
@@ -84,21 +97,8 @@ func requestKindForListKind(kind ListKind) MediaRequestKind {
 	}
 }
 
-func nextLibraryListKind(current ListKind) ListKind {
-	switch current {
-	case Playlists:
-		return Tracks
-	case Tracks:
-		return Albums
-	case Albums:
-		return Artists
-	default:
-		return Playlists
-	}
-}
-
-func MediaRequestForListKind(kind ListKind, offset int) MediaRequest {
-	return MediaRequest{kind: requestKindForListKind(kind), offset: offset, showLoading: true}
+func MediaRequestForListKind(kind ListKind) MediaRequest {
+	return MediaRequest{kind: requestKindForListKind(kind), page: 1, showLoading: true}
 }
 
 type MediaCenter struct {
@@ -126,33 +126,32 @@ func (m *MediaCenter) Update(msg tea.Msg) tea.Cmd {
 			return nil
 		}
 	}
-	cmd :=m.mediaPanel.Update(msg)
+	cmd := m.mediaPanel.Update(msg)
 	return cmd
 }
 func (m *MediaCenter) StartLoading() tea.Cmd {
 	return m.mediaPanel.StartLoading()
 }
 
-func (m *MediaCenter) SetContent(entities []Entity, kind ListKind) tea.Cmd {
-	cmd := m.mediaPanel.SetContent(entities, kind)
+func (m *MediaCenter) SetContent(entities []Entity, kind ListKind, pagination PaginationInfo, request MediaRequest) tea.Cmd {
+	cmd := m.mediaPanel.SetContent(entities, kind, pagination, request)
 	logger.Log.Info().Any("entities", entities).Int("kind", int(kind)).Msg("set content")
 	return cmd
 }
-
 
 func (m *MediaCenter) SetStatus(message string) tea.Cmd {
 	return m.mediaPanel.SetStatus(message)
 }
 
-func (e *Entity) Action(m * panel) tea.Cmd {
-	kind := m.GetActiveList().kind
-	m.PrepareForKind(kind)
+func (e *Entity) Action(p *panel) tea.Cmd {
+	kind := p.GetActiveList().kind
+	p.PrepareForKind(kind)
 	switch kind {
 	case Playlists:
 		return func() tea.Msg {
 			return MediaRequest{
 				kind:        GetPlaylistTracks,
-				offset:      0,
+				page:        1,
 				entityURI:   e.ID,
 				showLoading: true,
 			}
@@ -161,7 +160,7 @@ func (e *Entity) Action(m * panel) tea.Cmd {
 		return func() tea.Msg {
 			return MediaRequest{
 				kind:        GetArtistAlbums,
-				offset:      0,
+				page:        1,
 				entityURI:   e.ID,
 				showLoading: true,
 			}
@@ -170,7 +169,7 @@ func (e *Entity) Action(m * panel) tea.Cmd {
 		return func() tea.Msg {
 			return MediaRequest{
 				kind:        GetAlbumTracks,
-				offset:      0,
+				page:        1,
 				entityURI:   e.ID,
 				showLoading: true,
 			}
@@ -180,6 +179,7 @@ func (e *Entity) Action(m * panel) tea.Cmd {
 			return MediaRequest{
 				kind:        PlayTrack,
 				entityURI:   e.ID,
+				contextURI:  p.GetActiveList().request.entityURI,
 				showLoading: false,
 			}
 		}
@@ -187,7 +187,6 @@ func (e *Entity) Action(m * panel) tea.Cmd {
 		return nil
 	}
 }
-
 
 func AdaptSpotifyPlaylistPage(p *spotify.SimplePlaylistPage) []Entity {
 	entities := make([]Entity, 0)
