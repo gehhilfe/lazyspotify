@@ -1,11 +1,10 @@
-package v1
+package common
 
 import (
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
 )
 
-type appKeyMap struct {
+type AppKeyMap struct {
 	ToggleHelp   key.Binding
 	Quit         key.Binding
 	CycleLibrary key.Binding
@@ -23,8 +22,8 @@ type appKeyMap struct {
 	VolumeUp     key.Binding
 }
 
-func newAppKeyMap() appKeyMap {
-	return appKeyMap{
+func NewAppKeyMap() AppKeyMap {
+	return AppKeyMap{
 		ToggleHelp: key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "toggle help"),
@@ -88,11 +87,11 @@ func newAppKeyMap() appKeyMap {
 	}
 }
 
-func (k appKeyMap) ShortHelp() []key.Binding {
+func (k AppKeyMap) ShortHelp() []key.Binding {
 	return []key.Binding{k.ToggleHelp}
 }
 
-func (k appKeyMap) FullHelp() [][]key.Binding {
+func (k AppKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.ToggleHelp, k.Quit, k.CycleLibrary, k.Select},
 		{k.Back, k.NextPage, k.PrevPage, k.TogglePanel, k.PlayPause},
@@ -101,8 +100,18 @@ func (k appKeyMap) FullHelp() [][]key.Binding {
 	}
 }
 
-func newHelpModel() help.Model {
-	h := help.New()
-	h.ShowAll = false
-	return h
+var MediaCenterKeyMap = struct {
+	Select      key.Binding
+	TogglePanel key.Binding
+	Back        key.Binding
+	NextPanel   key.Binding
+	NextPage    key.Binding
+	PrevPage    key.Binding
+}{
+	Select:      key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+	TogglePanel: key.NewBinding(key.WithKeys("P"), key.WithHelp("P", "toggle panel")),
+	Back:        key.NewBinding(key.WithKeys("backspace", "delete"), key.WithHelp("del", "back")),
+	NextPanel:   key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "next panel")),
+	NextPage:    key.NewBinding(key.WithKeys("ctrl+d"), key.WithHelp("ctrl+d", "next page")),
+	PrevPage:    key.NewBinding(key.WithKeys("ctrl+u"), key.WithHelp("ctrl+u", "prev page")),
 }
