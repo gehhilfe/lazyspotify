@@ -9,6 +9,7 @@ type AppKeyMap struct {
 	Quit           key.Binding
 	CycleLibrary   key.Binding
 	Search         key.Binding
+	MoreInfo       key.Binding
 	Select         key.Binding
 	Back           key.Binding
 	NextPage       key.Binding
@@ -22,6 +23,7 @@ type AppKeyMap struct {
 	VolumeDown     key.Binding
 	VolumeUp       key.Binding
 	MediaPanelOpen bool
+	InfoOpen       bool
 }
 
 func NewAppKeyMap() AppKeyMap {
@@ -41,6 +43,10 @@ func NewAppKeyMap() AppKeyMap {
 		Search: key.NewBinding(
 			key.WithKeys("/"),
 			key.WithHelp("/", "search"),
+		),
+		MoreInfo: key.NewBinding(
+			key.WithKeys("i"),
+			key.WithHelp("i", "more info"),
 		),
 		Select: key.NewBinding(
 			key.WithKeys("enter"),
@@ -103,7 +109,29 @@ func (k AppKeyMap) FullHelp() [][]key.Binding {
 		{k.ToggleHelp, k.Quit, k.TogglePanel},
 	}
 	if k.MediaPanelOpen {
-		return append(help, []key.Binding{k.CycleLibrary, k.Search, k.Select, k.Back, k.NextPage, k.PrevPage})
+		if k.InfoOpen {
+			closeInfo := key.NewBinding(
+				key.WithKeys("i", "esc", "backspace", "delete"),
+				key.WithHelp("i/esc/del", "close info"),
+			)
+			scrollInfo := key.NewBinding(
+				key.WithKeys("[", "]"),
+				key.WithHelp("[/]", "scroll info"),
+			)
+			nextPage := key.NewBinding(
+				key.WithKeys("right", "l"),
+				key.WithHelp("right/l", "next page"),
+			)
+			prevPage := key.NewBinding(
+				key.WithKeys("left", "h"),
+				key.WithHelp("left/h", "prev page"),
+			)
+			return append(help,
+				[]key.Binding{k.CycleLibrary, k.Search, k.Select, closeInfo},
+				[]key.Binding{nextPage, prevPage, scrollInfo},
+			)
+		}
+		return append(help, []key.Binding{k.CycleLibrary, k.Search, k.MoreInfo, k.Select, k.Back, k.NextPage, k.PrevPage})
 	}
 	return append(help,
 		[]key.Binding{k.PlayPause, k.SeekForward, k.SeekBackward},
@@ -113,5 +141,10 @@ func (k AppKeyMap) FullHelp() [][]key.Binding {
 
 func (k AppKeyMap) WithMediaPanelOpen(open bool) AppKeyMap {
 	k.MediaPanelOpen = open
+	return k
+}
+
+func (k AppKeyMap) WithInfoOpen(open bool) AppKeyMap {
+	k.InfoOpen = open
 	return k
 }

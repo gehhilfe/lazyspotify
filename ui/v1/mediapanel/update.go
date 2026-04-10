@@ -15,6 +15,27 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 		if m.searchFocused {
 			return m.updateSearchInput(msg)
 		}
+		if key.Matches(msg, m.keys.MoreInfo) {
+			return m.toggleInfo()
+		}
+		if m.infoOpen {
+			switch {
+			case msg.String() == "esc":
+				m.closeInfo()
+				return nil
+			case key.Matches(msg, m.keys.Back):
+				m.closeInfo()
+				return nil
+			case msg.String() == "[":
+				m.syncInfoViewportLayout()
+				m.infoViewport.PageUp()
+				return nil
+			case msg.String() == "]":
+				m.syncInfoViewportLayout()
+				m.infoViewport.PageDown()
+				return nil
+			}
+		}
 		if key.Matches(msg, m.keys.Search) {
 			return m.focusSearch()
 		}
@@ -28,7 +49,21 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 			return m.activateNextPanel()
 		}
 	}
-	return m.activePanel().Update(msg, m.keys)
+	beforeSelection := ""
+	if entity, ok := m.selectedEntity(); ok {
+		beforeSelection = m.selectionSignature(entity)
+	}
+	cmd := m.activePanel().Update(msg, m.keys)
+	if m.infoOpen {
+		afterSelection := ""
+		if entity, ok := m.selectedEntity(); ok {
+			afterSelection = m.selectionSignature(entity)
+		}
+		if beforeSelection != afterSelection {
+			m.refreshInfoForSelection(true)
+		}
+	}
+	return cmd
 }
 
 func (m *Model) StartLoading(kind common.ListKind) tea.Cmd {
@@ -40,11 +75,16 @@ func (m *Model) SetStatus(kind common.ListKind, message string) tea.Cmd {
 }
 
 func (m *Model) SetContent(entities []common.Entity, kind common.ListKind, pagination common.PaginationInfo, request common.MediaRequest) tea.Cmd {
-	return m.panelForKind(request.PanelKind).SetContent(entities, kind, pagination, request)
+	cmd := m.panelForKind(request.PanelKind).SetContent(entities, kind, pagination, request)
+	if request.PanelKind == m.activePanel().kind {
+		m.syncInfoContent(true)
+	}
+	return cmd
 }
 
 func (m *Model) activateNextPanel() tea.Cmd {
 	m.active = (m.active + 1) % len(m.panels)
+	m.syncInfoContent(true)
 	return m.activePanel().Prepare(m.searchQuery)
 }
 

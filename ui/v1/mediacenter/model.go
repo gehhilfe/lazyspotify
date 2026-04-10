@@ -75,8 +75,13 @@ func (m *Model) SetStatus(kind common.ListKind, message string) tea.Cmd {
 
 func (m *Model) CloseLibrary() {
 	m.mediaListOpen = false
+	m.mediaPanel.CloseInfo()
 }
 
 func (m *Model) IsOpen() bool {
 	return m.mediaListOpen
+}
+
+func (m *Model) InfoOpen() bool {
+	return m.mediaPanel.InfoOpen()
 }
