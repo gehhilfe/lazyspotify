@@ -9,6 +9,8 @@ import (
 	"github.com/dubeyKartikay/lazyspotify/ui/v1/common"
 )
 
+const scrollGap = "   "
+
 func (m *Model) SetDisplayFromSong(song common.SongInfo) {
 	if song.Title == "" {
 		return
@@ -19,6 +21,7 @@ func (m *Model) SetDisplayFromSong(song common.SongInfo) {
 		m.styles.muted.Render(song.Artist) +
 		m.styles.accent.Render(separator) +
 		m.styles.muted.Render(song.Album)
+	m.scrollOffset = 0
 }
 
 func (m *Model) Update(tea.Msg) tea.Cmd {
@@ -26,8 +29,8 @@ func (m *Model) Update(tea.Msg) tea.Cmd {
 }
 
 func (m *Model) NextFrame() tea.Cmd {
-	if len(m.display) > 0 {
-		m.scrollOffset = (m.scrollOffset + 1) % len(m.display)
+	if span := m.scrollSpan(m.display); span > 0 {
+		m.scrollOffset = (m.scrollOffset + 1) % span
 	}
 	return ticker.DoTick()
 }
@@ -36,22 +39,24 @@ func (m *Model) scrollText(text string, width int) string {
 	if width <= 0 {
 		return ""
 	}
-	if lipglossWidth(text) <= width {
+	if ansi.StringWidth(text) <= width {
 		return text
 	}
 
-	const gap = "   "
-	base := text + gap
+	base := text + scrollGap
 	track := base + base
-	if len(base) == 0 {
+	span := m.scrollSpan(text)
+	if span == 0 {
 		return strings.Repeat(" ", width)
 	}
 
-	start := m.scrollOffset
-	end := min(len(track), start+width)
-	return ansi.Cut(track, start, end)
+	start := m.scrollOffset % span
+	return ansi.Cut(track, start, start+width)
 }
 
-func lipglossWidth(text string) int {
-	return len([]rune(ansi.Strip(text)))
+func (m *Model) scrollSpan(text string) int {
+	if text == "" {
+		return 0
+	}
+	return ansi.StringWidth(text + scrollGap)
 }

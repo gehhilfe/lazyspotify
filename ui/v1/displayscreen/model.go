@@ -43,4 +43,5 @@ func (m *Model) SetSize(width, height int) {
 
 func (m *Model) SetDisplay(s string) {
 	m.display = s
+	m.scrollOffset = 0
 }
