@@ -10,6 +10,9 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 	case tea.KeyPressMsg:
 		if key.Matches(msg, m.keys.TogglePanel) {
 			m.mediaListOpen = !m.mediaListOpen
+			if !m.mediaListOpen {
+				m.mediaPanel.CloseInfo()
+			}
 			return nil
 		}
 		if !m.mediaListOpen {

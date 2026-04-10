@@ -1,9 +1,11 @@
 package mediapanel
 
 import (
+	"fmt"
 	"strings"
 
 	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/dubeyKartikay/lazyspotify/core/utils"
@@ -19,6 +21,9 @@ type styles struct {
 	searchLine     lipgloss.Style
 	searchPrompt   lipgloss.Style
 	searchValue    lipgloss.Style
+	infoStrip      lipgloss.Style
+	infoLabel      lipgloss.Style
+	infoValue      lipgloss.Style
 }
 
 type Model struct {
@@ -31,6 +36,9 @@ type Model struct {
 	searchInput   textinput.Model
 	searchFocused bool
 	searchQuery   string
+	infoOpen      bool
+	infoViewport  viewport.Model
+	infoSelection string
 }
 
 type panel struct {
@@ -48,12 +56,15 @@ func NewModel(keys common.AppKeyMap) Model {
 		common.Artists,
 	}
 	panels := common.MapSlice(kinds, newPanel)
+	infoViewport := viewport.New()
+	infoViewport.SoftWrap = true
 	return Model{
-		panels:      panels,
-		active:      0,
-		keys:        keys,
-		styles:      defaultStyles(),
-		searchInput: newSearchInput(),
+		panels:       panels,
+		active:       0,
+		keys:         keys,
+		styles:       defaultStyles(),
+		searchInput:  newSearchInput(),
+		infoViewport: infoViewport,
 	}
 }
 
@@ -69,6 +80,19 @@ func defaultStyles() styles {
 		searchLine:   lipgloss.NewStyle(),
 		searchPrompt: lipgloss.NewStyle().Foreground(lipgloss.Color("8")),
 		searchValue:  lipgloss.NewStyle().Foreground(lipgloss.Color("252")),
+		infoStrip: lipgloss.NewStyle().
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderTop(true).
+			BorderLeft(false).
+			BorderRight(false).
+			BorderBottom(false).
+			BorderForeground(lipgloss.Color("8")).
+			Padding(0, 1),
+		infoLabel: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("8")).
+			Bold(true),
+		infoValue: lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252")),
 	}
 }
 
@@ -90,6 +114,11 @@ func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
 	m.searchInput.SetWidth(max(0, width-6))
+	m.syncInfoViewportLayout()
+}
+
+func (m *Model) InfoOpen() bool {
+	return m.infoOpen
 }
 
 func (m *Model) activePanel() *panel {
@@ -109,12 +138,14 @@ func (m *Model) focusSearch() tea.Cmd {
 	m.searchFocused = true
 	m.searchInput.SetValue(m.searchQuery)
 	m.searchInput.CursorEnd()
+	m.syncInfoViewportLayout()
 	return m.searchInput.Focus()
 }
 
 func (m *Model) blurSearch() {
 	m.searchFocused = false
 	m.searchInput.Blur()
+	m.syncInfoViewportLayout()
 }
 
 func (m *Model) submitSearch() tea.Cmd {
@@ -131,6 +162,7 @@ func (m *Model) applySearch(query string) tea.Cmd {
 	m.searchQuery = query
 	m.searchInput.SetValue(query)
 	m.resetPanelsToRoot()
+	m.syncInfoContent(true)
 	return m.activePanel().Prepare(m.searchQuery)
 }
 
@@ -139,6 +171,7 @@ func (m *Model) clearSearchAndReload() tea.Cmd {
 	m.searchInput.Reset()
 	m.blurSearch()
 	m.resetPanelsToRoot()
+	m.syncInfoContent(true)
 	return m.activePanel().Prepare(m.searchQuery)
 }
 
@@ -146,6 +179,84 @@ func (m *Model) resetPanelsToRoot() {
 	for i := range m.panels {
 		m.panels[i].resetToRoot()
 	}
+}
+
+func (m *Model) toggleInfo() tea.Cmd {
+	if m.infoOpen {
+		m.closeInfo()
+		return nil
+	}
+	if _, ok := m.selectedEntity(); !ok {
+		return m.activePanel().SetStatus("No item selected")
+	}
+	m.infoOpen = true
+	m.refreshInfoForSelection(true)
+	m.syncInfoViewportLayout()
+	return nil
+}
+
+func (m *Model) closeInfo() {
+	m.infoOpen = false
+	m.infoSelection = ""
+	m.infoViewport.SetContent("")
+	m.infoViewport.GotoTop()
+}
+
+func (m *Model) syncInfoContent(resetScroll bool) {
+	if !m.infoOpen {
+		return
+	}
+	m.refreshInfoForSelection(resetScroll)
+}
+
+func (m *Model) refreshInfoForSelection(resetScroll bool) {
+	entity, ok := m.selectedEntity()
+	if !ok {
+		m.infoSelection = ""
+		m.infoViewport.SetContent("")
+		if resetScroll {
+			m.infoViewport.GotoTop()
+		}
+		return
+	}
+
+	signature := m.selectionSignature(entity)
+	if !resetScroll && signature == m.infoSelection {
+		return
+	}
+
+	m.infoSelection = signature
+	m.infoViewport.SetContent(m.infoContentFor(entity))
+	if resetScroll {
+		m.infoViewport.GotoTop()
+	}
+}
+
+func (m *Model) infoContentFor(entity common.Entity) string {
+	sections := []string{
+		m.styles.infoLabel.Render("Name"),
+		m.styles.infoValue.Render(entity.Name),
+	}
+	if entity.Desc != "" {
+		sections = append(sections,
+			"",
+			m.styles.infoLabel.Render("Description"),
+			m.styles.infoValue.Render(entity.Desc),
+		)
+	}
+	return strings.Join(sections, "\n")
+}
+
+func (m *Model) selectedEntity() (common.Entity, bool) {
+	return m.activePanel().activeList().SelectedEntity()
+}
+
+func (m *Model) selectionSignature(entity common.Entity) string {
+	return fmt.Sprintf("%s\x00%s\x00%s", entity.ID, entity.Name, entity.Desc)
+}
+
+func (m *Model) CloseInfo() {
+	m.closeInfo()
 }
 
 func (p *panel) depth() int {

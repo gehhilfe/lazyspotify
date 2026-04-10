@@ -12,7 +12,7 @@ func (m *Model) View() tea.View {
 	}
 
 	mediaCenterView := m.mediaCenter.View()
-	helpKeys := m.keys.WithMediaPanelOpen(m.mediaCenter.IsOpen())
+	helpKeys := m.keys.WithMediaPanelOpen(m.mediaCenter.IsOpen()).WithInfoOpen(m.mediaCenter.InfoOpen())
 	helpLine := helpStyle.Width(m.width).Align(lipgloss.Center).Render(m.help.View(helpKeys))
 	modelView := lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center, lipgloss.Center).Render(mediaCenterView)
 	layers := []*lipgloss.Layer{
