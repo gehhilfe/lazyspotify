@@ -65,15 +65,14 @@ If you build `lazyspotify` yourself and do not compile in a packaged daemon path
 `lazyspotify` requires your own Spotify app client ID.
 
 1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. Create a new app.
+2. Create a new app with:
+   - App name: `lazyspotify`
+   - App description: `terminal based spotify client`
+   - Website: `https://github.com/dubeyKartikay/lazyspotify`
+   - Redirect URIs: `http://127.0.0.1:8287/callback`
+   - APIs used: `Web API`, `Web Playback SDK`
 3. Copy the app's Client ID.
-4. Add this Redirect URI in the Spotify app settings:
-
-```text
-http://127.0.0.1:8287/callback
-```
-
-5. Put the Client ID in `config.yaml` or export it as an environment variable.
+4. Put the Client ID in `config.yaml` or export it as an environment variable.
 
 Minimal config:
 

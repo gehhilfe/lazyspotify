@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const SpotifyClientIDHelpURL = "https://github.com/dubeyKartikay/lazyspotify#set-your-spotify-client-id"
+const SpotifyClientIDHelpURL = "https://github.com/dubeyKartikay/lazyspotify?tab=readme-ov-file#set-up-your-spotify-client-id"
 
 var (
 	config        AppConfig
