@@ -1,136 +1,81 @@
 # lazyspotify
 
-`lazyspotify` is a terminal Spotify client that uses a patched `go-librespot`
-daemon for playback.
+[![Release](https://img.shields.io/github/v/release/dubeyKartikay/lazyspotify?label=release)](https://github.com/dubeyKartikay/lazyspotify/releases)
+[![Release Workflow](https://github.com/dubeyKartikay/lazyspotify/actions/workflows/release.yml/badge.svg)](https://github.com/dubeyKartikay/lazyspotify/actions/workflows/release.yml)
+[![Build Debian Package](https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-deb.yml/badge.svg)](https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-deb.yml)
+[![Build RPM Package](https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-rpm.yml/badge.svg)](https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-rpm.yml)
+[![License](https://img.shields.io/github/license/dubeyKartikay/lazyspotify)](LICENSE)
 
-## Runtime requirements
+`lazyspotify` is a terminal Spotify client backed by a patched `go-librespot` daemon for playback.
+
+## Requirements
 
 - A Spotify Premium account.
-- A patched `go-librespot` daemon build from
-  `https://github.com/dubeyKartikay/go-librespot/`.
 - A working system keyring.
-  On Linux this is a hard requirement: `lazyspotify` will not fall back to
-  plaintext token storage if the keyring is unavailable.
-- Linux clipboard integration is optional.
-  For the auth screen's copy shortcut, install one of `wl-clipboard`, `xclip`,
-  or `xsel`.
+- The patched `lazyspotify-librespot` daemon if you are installing from source or running an unpackaged build.
+- On Linux, one of `wl-clipboard`, `xclip`, or `xsel` if you want clipboard support on the auth screen.
 
-Package defaults:
+## Install
 
-- Linux package builds default the daemon audio backend to `alsa`.
-- macOS package builds default the daemon audio backend to `audio-toolbox`.
-
-## Daemon discovery
-
-At startup, `lazyspotify` resolves the playback daemon in this order:
-
-1. `librespot.daemon.cmd` from `config.yaml`
-2. A packaged default daemon path compiled into the binary at build time
-
-Not supported:
-
-- `LAZYSPOTIFY_LIBRESPOT_DAEMON`
-- `PATH` lookup
-- probing next to the executable
-- relocatable bundled daemon discovery
-
-If you install `lazyspotify` without packaging and do not compile in a default
-daemon path, you must set `librespot.daemon.cmd`.
-
-## Installation
-
-### Primary channels
-
-- macOS: Homebrew tap formula.
-- Ubuntu: PPA.
-- Fedora: COPR.
-- Arch: AUR `lazyspotify-bin`.
-
-Fallback release assets are published on GitHub Releases:
-
-- macOS: signed and notarized `.zip` archives.
-- Ubuntu: `.deb`.
-- Fedora: `.rpm`.
-- Arch: binary tarball consumed by `lazyspotify-bin`.
-
-### Packaged install layout
-
-Every package ships both binaries:
-
-- `lazyspotify`
-- `lazyspotify-librespot`
-
-Compile the daemon path into the `lazyspotify` binary with
-`github.com/dubeyKartikay/lazyspotify/buildinfo.PackagedDaemonPath`.
-
-Install layouts:
-
-- Homebrew: `bin/lazyspotify` and `#{opt_libexec}/lazyspotify-librespot`
-- Ubuntu: `/usr/bin/lazyspotify` and `/usr/lib/lazyspotify/lazyspotify-librespot`
-- Fedora: `/usr/bin/lazyspotify` and `/usr/libexec/lazyspotify/lazyspotify-librespot`
-- Arch `lazyspotify-bin`: `/usr/bin/lazyspotify` and `/usr/lib/lazyspotify/lazyspotify-librespot`
-
-Example Linux package build:
+### Homebrew
 
 ```bash
-go build -ldflags "-X github.com/dubeyKartikay/lazyspotify/buildinfo.PackagedDaemonPath=/usr/lib/lazyspotify/lazyspotify-librespot" -o target/lazyspotify ./cmd/lazyspotify
+brew tap dubeyKartikay/lazyspotify
+brew install lazyspotify
 ```
 
-For Homebrew, inject `#{opt_libexec}/lazyspotify-librespot` during the formula
-build so upgrades keep a stable absolute daemon path.
-
-### GitHub Release archives
-
-The Linux fallback assets install cleanly into package-managed locations.
-
-The macOS fallback archive ships both binaries but does not provide relocatable
-daemon discovery. After extracting it, set `librespot.daemon.cmd` explicitly in
-your config.
-
-### Source build
-
-Build `lazyspotify`:
+### Arch Linux
 
 ```bash
-go build -o target/lazyspotify ./cmd/lazyspotify
+yay -S lazyspotify-bin
 ```
 
-Build the patched daemon from the forked `go-librespot` repository and set an
-explicit config override:
+### GitHub Releases
 
-```yaml
-librespot:
-  daemon:
-    cmd:
-      - /absolute/path/to/lazyspotify-librespot
+Download the latest package from [GitHub Releases](https://github.com/dubeyKartikay/lazyspotify/releases).
+
+- macOS: signed `.zip`
+- Ubuntu/Debian: `.deb`
+- Fedora/RHEL: `.rpm`
+- Arch: `.tar.gz`
+
+Example package installs:
+
+```bash
+sudo dpkg -i lazyspotify-*.deb
+sudo dnf install ./lazyspotify-*.rpm
 ```
 
-## Version metadata
+### Build From Source
 
-`lazyspotify version` and `lazyspotify --version` print:
+Build the app:
 
-- `version`
-- `commit`
-- `build_date`
-- `packaged_daemon_path`
+```bash
+git clone https://github.com/dubeyKartikay/lazyspotify.git
+cd lazyspotify
+make build
+```
 
-## Configuration
+Then build the patched daemon from [`dubeyKartikay/go-librespot`](https://github.com/dubeyKartikay/go-librespot) and point `librespot.daemon.cmd` at that binary in your config.
 
-Config lives under the OS config directory:
+If you build `lazyspotify` yourself and do not compile in a packaged daemon path, `librespot.daemon.cmd` is required.
 
-- macOS: `~/Library/Application Support/lazyspotify/config.yaml`
-- Linux: `~/.config/lazyspotify/config.yaml`
+## Set Up Your Spotify Client ID
 
-Only overrides are required. Package builds may provide a compiled default
-daemon path.
+`lazyspotify` requires your own Spotify app client ID.
 
-### Set Your Spotify Client ID
+1. Open the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
+2. Create a new app.
+3. Copy the app's Client ID.
+4. Add this Redirect URI in the Spotify app settings:
 
-`lazyspotify` now requires your own Spotify app client ID. Spotify does not
-allow individual apps to use extended quota for other users, so the bundled
-client ID has been removed.
+```text
+http://127.0.0.1:8287/callback
+```
 
-Set `auth.client_id` in `config.yaml`:
+5. Put the Client ID in `config.yaml` or export it as an environment variable.
+
+Minimal config:
 
 ```yaml
 auth:
@@ -143,36 +88,89 @@ Environment override:
 export AUTH_CLIENT_ID=your_spotify_app_client_id
 ```
 
-Example:
+If you change `auth.host`, `auth.port`, or `auth.redirect-endpoint`, update the Spotify app Redirect URI to match exactly.
+
+## Configuration
+
+Config file locations:
+
+- macOS: `~/Library/Application Support/lazyspotify/config.yaml`
+- Linux: `~/.config/lazyspotify/config.yaml`
+
+Minimal config for package installs:
 
 ```yaml
 auth:
   client_id: your_spotify_app_client_id
+```
+
+Minimal config for source or manual installs:
+
+```yaml
+auth:
+  client_id: your_spotify_app_client_id
+
 librespot:
   daemon:
     cmd:
       - /absolute/path/to/lazyspotify-librespot
 ```
 
-## Development
+The generated daemon config is written automatically under the `librespot/` subdirectory inside the app config directory. You usually do not need to edit it manually.
 
-Run the app:
+### Auth Settings
+
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `auth.client_id` | Yes | none | Your Spotify app client ID. |
+| `auth.host` | No | `127.0.0.1` | Host used for the local OAuth callback server. |
+| `auth.port` | No | `8287` | Port used for the local OAuth callback server. |
+| `auth.redirect-endpoint` | No | `/callback` | Callback path for Spotify OAuth. |
+| `auth.timeout` | No | `30` | Auth server shutdown timeout in seconds. |
+| `auth.keyring.service` | No | `spotify` | Keyring service name for stored tokens. |
+| `auth.keyring.key` | No | `token-v2` | Keyring key for stored tokens. |
+
+### Librespot Settings
+
+| Key | Required | Default | Notes |
+| --- | --- | --- | --- |
+| `librespot.host` | No | `127.0.0.1` | Host for the local playback API server. |
+| `librespot.port` | No | `4040` | Port for the local playback API server. |
+| `librespot.timeout` | No | `180` | Playback API timeout in seconds. |
+| `librespot.retry-delay` | No | `100` | Retry delay in milliseconds. |
+| `librespot.max-retries` | No | `3` | Retry count for daemon calls. |
+| `librespot.seek-step-ms` | No | `5000` | Seek step size in milliseconds. |
+| `librespot.volume-step` | No | `3276` | Volume step used for volume controls. |
+| `librespot.daemon.cmd` | Sometimes | none | Required for source/manual installs unless a packaged daemon path was compiled into the binary. |
+| `librespot.daemon.zeroconf_enabled` | No | `false` | Enables zeroconf in the daemon config. |
+
+Environment variables can override config values by replacing `.` and `-` with `_`. Examples: `AUTH_CLIENT_ID`, `AUTH_PORT`, `LIBRESPOT_PORT`.
+
+## Run
+
+Start the app with:
+
+```bash
+lazyspotify
+```
+
+If you built from source:
+
+```bash
+./target/lazyspotify
+```
+
+Print build metadata:
+
+```bash
+lazyspotify version
+```
+
+## Development
 
 ```bash
 make run
-```
-
-Build the app:
-
-```bash
-make build
-```
-
-Run tests:
-
-```bash
 go test ./...
 ```
 
-Distribution packaging, release scripts, and CI workflow details live in
-[`docs/distribution.md`](docs/distribution.md).
+Packaging and release-maintainer details live in [docs/distribution.md](docs/distribution.md).
