@@ -1,7 +1,7 @@
 <div align="center">
   <img width="220" src="./docs/assets/logo.png" alt="lazyspotify logo" />
   <h1>lazyspotify</h1>
-  <p>A terminal Spotify client backed by a patched <code>go-librespot</code> daemon for playback.</p>
+  <p>A terminal Spotify client.</p>
   <p>
     <a href="https://github.com/dubeyKartikay/lazyspotify/releases"><img src="https://img.shields.io/github/v/release/dubeyKartikay/lazyspotify?label=release" alt="Release"/></a>
     <a href="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/release.yml"><img src="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/release.yml/badge.svg" alt="Release workflow"/></a>
