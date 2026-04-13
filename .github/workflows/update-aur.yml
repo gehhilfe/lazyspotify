@@ -67,9 +67,18 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "${{ secrets.AUR_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          cat > ~/.ssh/config <<'EOF'
+          Host aur.archlinux.org
+            User aur
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+          EOF
+          chmod 600 ~/.ssh/config
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
 
       - name: Update AUR repository
+        env:
+          GIT_SSH_COMMAND: ssh -F ~/.ssh/config
         run: |
           git clone "ssh://aur@aur.archlinux.org/${{ inputs.aur_package }}.git" aur-repo
           cp rendered/PKGBUILD aur-repo/PKGBUILD
