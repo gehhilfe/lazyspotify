@@ -331,13 +331,20 @@ jobs:
             --commit "${{ needs.prepare.outputs.source_commit }}" \
             --output rendered/lazyspotify.rb
 
-      - name: Checkout tap repo
+      - name: Prepare tap repo
         if: ${{ steps.homebrew_gate.outputs.enabled == 'true' }}
-        uses: actions/checkout@v4
-        with:
-          repository: dubeyKartikay/homebrew-lazyspotify
-          token: ${{ secrets.HOMEBREW_TAP_REPO_TOKEN }}
-          path: tap-repo
+        env:
+          HOMEBREW_TAP_REPO_TOKEN: ${{ secrets.HOMEBREW_TAP_REPO_TOKEN }}
+        run: |
+          git init tap-repo
+          cd tap-repo
+          git remote add origin "https://x-access-token:${HOMEBREW_TAP_REPO_TOKEN}@github.com/dubeyKartikay/homebrew-lazyspotify.git"
+          if git ls-remote --exit-code --heads origin main >/dev/null 2>&1; then
+            git fetch --depth=1 origin main
+            git checkout -B main origin/main
+          else
+            git checkout --orphan main
+          fi
 
       - name: Push formula update
         if: ${{ steps.homebrew_gate.outputs.enabled == 'true' }}
@@ -345,7 +352,7 @@ jobs:
           mkdir -p tap-repo/Formula
           cp rendered/lazyspotify.rb tap-repo/Formula/lazyspotify.rb
           cd tap-repo
-          if git diff --quiet; then
+          if [[ -z "$(git status --porcelain)" ]]; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
