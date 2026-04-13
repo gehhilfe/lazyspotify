@@ -124,9 +124,30 @@ Config lives under the OS config directory:
 Only overrides are required. Package builds may provide a compiled default
 daemon path.
 
+### Set Your Spotify Client ID
+
+`lazyspotify` now requires your own Spotify app client ID. Spotify does not
+allow individual apps to use extended quota for other users, so the bundled
+client ID has been removed.
+
+Set `auth.client_id` in `config.yaml`:
+
+```yaml
+auth:
+  client_id: your_spotify_app_client_id
+```
+
+Environment override:
+
+```bash
+export AUTH_CLIENT_ID=your_spotify_app_client_id
+```
+
 Example:
 
 ```yaml
+auth:
+  client_id: your_spotify_app_client_id
 librespot:
   daemon:
     cmd:

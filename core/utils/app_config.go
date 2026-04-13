@@ -2,29 +2,34 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-var config AppConfig
+const SpotifyClientIDHelpURL = "https://github.com/dubeyKartikay/lazyspotify#set-your-spotify-client-id"
+
+var (
+	config        AppConfig
+	configLoadErr error
+)
 
 func GetConfig() AppConfig {
 	return config
 }
 
 func init() {
-	var err error
-	config, err = LoadConfig()
-	if err != nil {
+	config, configLoadErr = LoadConfig()
+	if configLoadErr != nil {
 		config = getDefaultAppConfig()
 	}
 }
 
 type AppConfig struct {
-	SpotifyClientId string `mapstructure:"spotify-client-id"`
-	Auth            struct {
+	Auth struct {
+		ClientID         string `mapstructure:"client_id"`
 		Host             string `mapstructure:"host"`
 		Port             int    `mapstructure:"port"`
 		RedirectEndpoint string `mapstructure:"redirect-endpoint"`
@@ -47,6 +52,10 @@ type AppConfig struct {
 			ZeroconfEnabled bool     `mapstructure:"zeroconf_enabled"`
 		} `mapstructure:"daemon"`
 	} `mapstructure:"librespot"`
+}
+
+func (c AppConfig) SpotifyClientID() string {
+	return strings.TrimSpace(c.Auth.ClientID)
 }
 
 func getDefaultAppConfig() AppConfig {
@@ -86,6 +95,20 @@ func LoadConfig() (AppConfig, error) {
 		return AppConfig{}, err
 	}
 	return config, nil
+}
+
+func ValidateStartupConfig() error {
+	if configLoadErr != nil {
+		return fmt.Errorf("failed to load config: %w", configLoadErr)
+	}
+	return validateStartupConfig(config)
+}
+
+func validateStartupConfig(cfg AppConfig) error {
+	if cfg.SpotifyClientID() == "" {
+		return fmt.Errorf("missing required config value `auth.client_id`; see %s", SpotifyClientIDHelpURL)
+	}
+	return nil
 }
 
 func getConfigDir() string {

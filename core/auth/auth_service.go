@@ -29,7 +29,7 @@ func NewAuthService(redirectURI string) *AuthService {
 			"user-library-read",
 			"user-read-private",
 		),
-		spotifyauth.WithClientID("565c1a413de9452da373f1ed3aa6afbe"),
+		spotifyauth.WithClientID(authConfig.clientID),
 	)
 	return &AuthService{
 		sptAuth:    sptAuth,
@@ -42,7 +42,7 @@ func (a *AuthService) GetAuthURL() string {
 	return a.sptAuth.AuthURL(a.authConfig.state,
 		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
 		oauth2.SetAuthURLParam("code_challenge", a.authConfig.codeChallenge),
-		oauth2.SetAuthURLParam("client_id", "565c1a413de9452da373f1ed3aa6afbe"),
+		oauth2.SetAuthURLParam("client_id", a.authConfig.clientID),
 	)
 }
 
