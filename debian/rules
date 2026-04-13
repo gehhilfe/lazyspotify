@@ -2,6 +2,7 @@
 
 export DH_VERBOSE = 1
 export CGO_ENABLED = 1
+export DEB_BUILD_OPTIONS = nodwz
 
 PACKAGE_DAEMON_PATH := /usr/lib/lazyspotify/lazyspotify-librespot
 VERSION := $(shell dpkg-parsechangelog -S Version | sed 's/-[^-]*$$//; s/~.*$$//')
