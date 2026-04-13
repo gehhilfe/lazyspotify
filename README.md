@@ -60,6 +60,24 @@ Then build the patched daemon from [`dubeyKartikay/go-librespot`](https://github
 
 If you build `lazyspotify` yourself and do not compile in a packaged daemon path, `librespot.daemon.cmd` is required.
 
+## Demos
+
+### Play A Track From Playlist > Track
+
+![Play a track from a playlist](docs/assets/demos/playlist-track-play.gif)
+
+### Player Controls
+
+![Player controls](docs/assets/demos/player-controls.gif)
+
+### Library Navigation
+
+![Library navigation](docs/assets/demos/library-navigation.gif)
+
+### Search
+
+![Search navigation](docs/assets/demos/search-navigation.gif)
+
 ## Set Up Your Spotify Client ID
 
 `lazyspotify` requires your own Spotify app client ID.
