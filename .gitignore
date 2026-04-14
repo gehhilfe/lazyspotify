@@ -1,4 +1,6 @@
 target/
+.cache/
+.go/
 .context/
 .DS_Store
 dist/

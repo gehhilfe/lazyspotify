@@ -10,7 +10,8 @@
   `daemon_commit`.
 - `scripts/release/create-source-bundle.sh` creates
   `lazyspotify-vX.Y.Z-src.tar.gz`, which vendors the pinned daemon source into
-  `third_party/go-librespot`.
+  `third_party/go-librespot` and vendors Go module dependencies for both
+  binaries so Launchpad can build without network access.
 
 ## Package trees
 

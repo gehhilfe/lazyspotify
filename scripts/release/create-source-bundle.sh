@@ -25,6 +25,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 require_command git
+require_command go
 require_command tar
 
 if (( require_daemon_tag )); then
@@ -43,6 +44,10 @@ daemon_dir="${tmpdir}/daemon"
 mkdir -p "${bundle_dir}" "${bundle_dir}/third_party"
 
 git -C "${REPO_ROOT}" archive --format=tar HEAD | tar -xf - -C "${bundle_dir}"
+(
+  cd "${bundle_dir}"
+  GOWORK=off go mod vendor
+)
 
 git clone --filter=blob:none --no-checkout "$(daemon_repo)" "${daemon_dir}" >/dev/null 2>&1
 git -C "${daemon_dir}" checkout --detach "$(daemon_commit)" >/dev/null 2>&1
@@ -52,6 +57,13 @@ if [[ -n "$(daemon_tag)" ]]; then
     echo "daemon_tag $(daemon_tag) does not point at $(daemon_commit)" >&2
     exit 1
   fi
+fi
+
+if [[ -f "${daemon_dir}/go.mod" ]]; then
+  (
+    cd "${daemon_dir}"
+    GOWORK=off go mod vendor
+  )
 fi
 
 mkdir -p "${bundle_dir}/third_party/go-librespot"
