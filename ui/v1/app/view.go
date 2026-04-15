@@ -24,10 +24,39 @@ func (m *Model) View() tea.View {
 	mediaCenterView := m.mediaCenter.View()
 	helpKeys := m.keys.WithMediaPanelOpen(m.mediaCenter.IsOpen()).WithInfoOpen(m.mediaCenter.InfoOpen())
 	helpLine := helpStyle.Width(m.width).Align(lipgloss.Center).Render(m.help.View(helpKeys))
+	if m.viewportTooSmall(mediaCenterView, helpLine) {
+		return tea.NewView(m.smallViewportView(mediaCenterView, helpLine))
+	}
 	modelView := lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center, lipgloss.Center).Render(mediaCenterView)
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(modelView).ID("model"),
 		lipgloss.NewLayer(helpLine).Y(m.height - lipgloss.Height(helpLine)).ID("help"),
 	}
 	return tea.NewView(lipgloss.NewCompositor(layers...).Render())
+}
+
+func (m *Model) viewportTooSmall(mediaCenterView, helpLine string) bool {
+	if m.width <= 0 || m.height <= 0 {
+		return false
+	}
+	requiredWidth := lipgloss.Width(mediaCenterView)
+	requiredHeight := lipgloss.Height(mediaCenterView) + lipgloss.Height(helpLine)
+	return m.width < requiredWidth || m.height < requiredHeight
+}
+
+func (m *Model) smallViewportView(mediaCenterView, helpLine string) string {
+	requiredWidth := lipgloss.Width(mediaCenterView)
+	requiredHeight := lipgloss.Height(mediaCenterView) + lipgloss.Height(helpLine)
+	message := lipgloss.JoinVertical(
+		lipgloss.Center,
+		"terminal size too small",
+		lipgloss.NewStyle().Foreground(lipgloss.BrightBlack).Render(
+			fmt.Sprintf("need at least %dx%d", requiredWidth, requiredHeight),
+		),
+	)
+	return lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Render(message)
 }
