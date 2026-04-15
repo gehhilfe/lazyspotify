@@ -4,7 +4,7 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func (m *Model) View() string {
+func (m *Model) View(maxW, maxH int) string {
 	playerView := m.player.View()
 	playerW, playerH := lipgloss.Size(playerView)
 	var mediaList string
@@ -17,5 +17,10 @@ func (m *Model) View() string {
 	m.displayScreen.SetSize(listW+playerW, 3)
 	content := lipgloss.JoinHorizontal(lipgloss.Top, mediaList, playerView)
 	content = lipgloss.JoinVertical(lipgloss.Left, m.displayScreen.View(), content)
-	return lipgloss.NewStyle().BorderStyle(lipgloss.HiddenBorder()).Render(content)
+	v := lipgloss.NewStyle().BorderStyle(lipgloss.HiddenBorder()).Render(content)
+	w, h := lipgloss.Size(v)
+	if ((w > maxW) || (h > maxH)) && m.mediaListOpen {
+    return lipgloss.NewStyle().BorderStyle(lipgloss.HiddenBorder()).Render(mediaList)
+  }
+	return v
 }
