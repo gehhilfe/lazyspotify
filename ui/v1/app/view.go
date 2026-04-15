@@ -21,7 +21,7 @@ func (m *Model) View() tea.View {
 		return m.authModel.View()
 	}
 
-	mediaCenterView := m.mediaCenter.View()
+	mediaCenterView := m.mediaCenter.View(m.width, m.height)
 	helpKeys := m.keys.WithMediaPanelOpen(m.mediaCenter.IsOpen()).WithInfoOpen(m.mediaCenter.InfoOpen())
 	helpLine := helpStyle.Width(m.width).Align(lipgloss.Center).Render(m.help.View(helpKeys))
 	if m.viewportTooSmall(mediaCenterView, helpLine) {
