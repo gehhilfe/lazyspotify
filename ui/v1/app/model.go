@@ -551,3 +551,7 @@ func ExitIfRunFails(err error) {
 		os.Exit(1)
 	}
 }
+
+func IsZenMode() bool {
+	return os.Getenv("ZEN_MODE") != ""
+}

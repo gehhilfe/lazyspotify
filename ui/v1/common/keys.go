@@ -25,6 +25,7 @@ type AppKeyMap struct {
 	PrevTrack      key.Binding
 	VolumeDown     key.Binding
 	VolumeUp       key.Binding
+	ZenMode        key.Binding
 	MediaPanelOpen bool
 	InfoOpen       bool
 }
@@ -110,6 +111,10 @@ func NewAppKeyMap() AppKeyMap {
 		VolumeUp: key.NewBinding(
 			key.WithKeys("k", "ctrl+n"),
 			key.WithHelp("k", "volume +"),
+		),
+		ZenMode: key.NewBinding(
+			key.WithKeys("z"),
+			key.WithHelp("z", "zen mode"),
 		),
 	}
 }

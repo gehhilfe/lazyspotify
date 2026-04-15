@@ -6,7 +6,7 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func (m *Model) View() string {
+func (m *Model) View(zenMode bool) string {
 	cassetteView := m.cassette.View()
 	cassetteW, cassetteH := lipgloss.Width(cassetteView), lipgloss.Height(cassetteView)
 	var buttonsView string
@@ -26,7 +26,9 @@ func (m *Model) View() string {
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(playerShellView).ID("player"),
 		lipgloss.NewLayer(cassetteView).X(cassetteX).Y(0).ID("cassette"),
-		lipgloss.NewLayer(buttonsView).X(cassetteX).Y(playerH - lipgloss.Height(buttonsView)).ID("buttons"),
+	}
+	if(!zenMode) {
+		layers = append(layers,lipgloss.NewLayer(buttonsView).X(cassetteX).Y(playerH - lipgloss.Height(buttonsView)).ID("buttons"))
 	}
 	return lipgloss.NewCompositor(layers...).Render()
 }

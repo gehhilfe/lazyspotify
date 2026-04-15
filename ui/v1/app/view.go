@@ -30,7 +30,9 @@ func (m *Model) View() tea.View {
 	modelView := lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center, lipgloss.Center).Render(mediaCenterView)
 	layers := []*lipgloss.Layer{
 		lipgloss.NewLayer(modelView).ID("model"),
-		lipgloss.NewLayer(helpLine).Y(m.height - lipgloss.Height(helpLine)).ID("help"),
+	}
+	if(!m.mediaCenter.IsZenMode()){
+		layers = append(layers,lipgloss.NewLayer(helpLine).Y(m.height - lipgloss.Height(helpLine)).ID("help"))
 	}
 	return tea.NewView(lipgloss.NewCompositor(layers...).Render())
 }

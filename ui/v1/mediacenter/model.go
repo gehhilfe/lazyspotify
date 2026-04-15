@@ -13,6 +13,7 @@ type Model struct {
 	player        player.Model
 	displayScreen displayscreen.Model
 	mediaListOpen bool
+	zenMode       bool
 	keys          common.AppKeyMap
 }
 
@@ -84,4 +85,8 @@ func (m *Model) IsOpen() bool {
 
 func (m *Model) InfoOpen() bool {
 	return m.mediaPanel.InfoOpen()
+}
+
+func (m *Model)IsZenMode() bool {
+	return m.zenMode
 }
