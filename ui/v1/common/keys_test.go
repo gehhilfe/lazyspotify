@@ -13,6 +13,13 @@ func TestFullHelpIncludesMoreInfoWhenPanelOpen(t *testing.T) {
 	}
 }
 
+func TestZenModeBindingUsesZ(t *testing.T) {
+	help := NewAppKeyMap().ZenMode.Help()
+	if help.Key != "z" || help.Desc != "zen mode" {
+		t.Fatalf("zen mode help = %#v, want key z and desc zen mode", help)
+	}
+}
+
 func TestFullHelpSwitchesToInfoModeHelp(t *testing.T) {
 	help := NewAppKeyMap().WithMediaPanelOpen(true).WithInfoOpen(true).FullHelp()
 	if !hasHelpEntry(help, "i/esc/del", "close info") {

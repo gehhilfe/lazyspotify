@@ -54,3 +54,37 @@ func TestViewDoesNotHidePlayerWhenViewportIsTooSmallAndPanelIsClosed(t *testing.
 		t.Fatalf("view = %q, expected player to remain rendered when panel is closed", view)
 	}
 }
+
+func TestViewHidesDisplayAndControlsInZenMode(t *testing.T) {
+	model := NewModel(common.NewAppKeyMap())
+
+	model.Update(tea.KeyPressMsg(tea.Key{Text: "z", Code: 'z'}))
+
+	view := model.View(120, 40)
+
+	if !strings.Contains(view, "LAZYSPOTIFY") {
+		t.Fatalf("view = %q, expected cassette to remain visible in zen mode", view)
+	}
+	if strings.Contains(view, "Lazyspotify: The cutest terminal music player") {
+		t.Fatalf("view = %q, did not expect display screen content in zen mode", view)
+	}
+	for _, icon := range []string{"|<", "<<", "|>", "||", ">>", ">|"} {
+		if strings.Contains(view, icon) {
+			t.Fatalf("view = %q, did not expect control icon %q in zen mode", view, icon)
+		}
+	}
+}
+
+func TestUpdateTogglesZenMode(t *testing.T) {
+	model := NewModel(common.NewAppKeyMap())
+
+	model.Update(tea.KeyPressMsg(tea.Key{Text: "z", Code: 'z'}))
+	if !model.IsZenMode() {
+		t.Fatal("expected zen mode to be enabled after pressing z")
+	}
+
+	model.Update(tea.KeyPressMsg(tea.Key{Text: "z", Code: 'z'}))
+	if model.IsZenMode() {
+		t.Fatal("expected zen mode to be disabled after pressing z again")
+	}
+}
