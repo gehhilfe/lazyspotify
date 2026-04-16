@@ -31,7 +31,7 @@ func TestMprisEnabledForOS(t *testing.T) {
 	}{
 		{goos: "linux", want: true},
 		{goos: "darwin", want: false},
-		{goos: "freebsd", want: false},
+		{goos: "freebsd", want: true},
 	}
 
 	for _, tt := range tests {
