@@ -324,14 +324,22 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Stage release assets
+        run: |
+          mkdir -p release
+          cp dist/*.deb release/
+          find dist -maxdepth 1 -name '*.rpm' ! -name '*.src.rpm' -exec cp -t release/ {} +
+          cp dist/*.zip release/
+          cp dist/*-src.tar.gz release/
+
       - name: Generate SHA256SUMS
-        run: scripts/release/generate-sha256sums.sh dist
+        run: scripts/release/generate-sha256sums.sh release
 
       - name: Create draft GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          files: dist/*
+          files: release/*
 
   update-homebrew-tap:
     needs:
