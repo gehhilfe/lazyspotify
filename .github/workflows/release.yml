@@ -328,6 +328,7 @@ jobs:
         run: |
           mkdir -p release
           cp dist/*.deb release/
+          cp dist/*-arch-amd64.tar.gz release/
           find dist -maxdepth 1 -name '*.rpm' ! -name '*.src.rpm' -exec cp -t release/ {} +
           cp dist/*.zip release/
           cp dist/*-src.tar.gz release/
