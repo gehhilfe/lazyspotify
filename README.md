@@ -5,8 +5,6 @@
   <p>
     <a href="https://github.com/dubeyKartikay/lazyspotify/releases"><img src="https://img.shields.io/github/v/release/dubeyKartikay/lazyspotify?label=release" alt="Release"/></a>
     <a href="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/release.yml"><img src="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/release.yml/badge.svg" alt="Release workflow"/></a>
-    <a href="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-deb.yml"><img src="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-deb.yml/badge.svg" alt="Build Debian package"/></a>
-    <a href="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-rpm.yml"><img src="https://github.com/dubeyKartikay/lazyspotify/actions/workflows/build-rpm.yml/badge.svg" alt="Build RPM package"/></a>
     <a href="./LICENSE"><img src="https://img.shields.io/github/license/dubeyKartikay/lazyspotify" alt="License"/></a>
   </p>
 </div>
