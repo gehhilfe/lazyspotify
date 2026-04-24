@@ -2,9 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,13 +15,12 @@ import (
 	"github.com/dubeyKartikay/lazyspotify/ui/v1/mediacenter"
 	"github.com/dubeyKartikay/lazyspotify/ui/v1/player"
 
-	"github.com/dubeyKartikay/lazyspotify/core/auth"
+	"github.com/dubeyKartikay/lazyspotify/core/backend"
+	backendfactory "github.com/dubeyKartikay/lazyspotify/core/backend/factory"
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
-	coreplayer "github.com/dubeyKartikay/lazyspotify/core/player"
 	"github.com/dubeyKartikay/lazyspotify/core/ticker"
 	"github.com/dubeyKartikay/lazyspotify/core/utils"
 	"github.com/dubeyKartikay/lazyspotify/librespot/models"
-	"github.com/dubeyKartikay/lazyspotify/spotify"
 )
 
 type Model struct {
@@ -32,8 +31,8 @@ type Model struct {
 	volumeInfo         common.VolumeInfo
 	volumeOverlayUntil time.Time
 	fatalErr           error
-	player             *coreplayer.Player
-	spotifyClient      *spotify.SpotifyClient
+	player             backend.Player
+	library            backend.Library
 	mediaCenter        mediacenter.Model
 	width              int
 	height             int
@@ -168,45 +167,26 @@ func (m *Model) shutdown() {
 
 func (m *Model) start() error {
 	ctx := context.Background()
-	var err error
 	m.authModel = uiauth.NewModel()
 	if m.width != 0 || m.height != 0 {
 		m.authModel.SetSize(m.width, m.height)
 	}
 
-	m.spotifyClient, err = spotify.NewSpotifyClient(ctx, m.authModel.Authenticator())
+	bundle, err := backendfactory.New(ctx, m.authModel.Authenticator())
 	if err != nil {
-		if spotify.IsAuthError(err) {
+		if errors.Is(err, backendfactory.ErrNeedsAuth) {
 			m.authModel.SetState(uiauth.NeedsAuth)
 		}
-		logger.Log.Error().Err(err).Msg("failed to create spotify client")
+		logger.Log.Error().Err(err).Msg("failed to construct backend")
 		return err
 	}
+	m.library = bundle.Library
+	m.player = bundle.Player
 
-	userID, err := m.spotifyClient.GetUserID(ctx)
-	logger.Log.Info().Str("user id", userID).Msg("got user id")
-	if err != nil {
-		if spotify.IsAuthError(err) {
-			m.authModel.SetState(uiauth.NeedsAuth)
-		}
-		return err
-	}
-
-	token, err := auth.New().GetAuthToken(ctx)
-	if err != nil || token == nil {
-		m.authModel.SetState(uiauth.NeedsAuth)
-		return err
-	}
-
-	m.player, err = coreplayer.NewPlayer(ctx, userID, token.AccessToken)
-	if err != nil {
-		logger.Log.Error().Err(err).Msg("failed to create player")
-		return err
-	}
 	if err := m.player.Start(ctx); err != nil {
 		logger.Log.Error().Err(err).Msg("failed to start player")
 		m.player = nil
-		return fmt.Errorf("failed to start librespot daemon: %w", err)
+		return fmt.Errorf("failed to start player: %w", err)
 	}
 	return nil
 }
@@ -363,16 +343,30 @@ func (m *Model) seekForward() error {
 	if m.player == nil {
 		return fmt.Errorf("player not ready")
 	}
-	step := utils.GetConfig().Librespot.SeekStepMs
-	return m.player.Seek(context.Background(), step, true)
+	return m.player.Seek(context.Background(), seekStep(), true)
 }
 
 func (m *Model) seekBackward() error {
 	if m.player == nil {
 		return fmt.Errorf("player not ready")
 	}
-	step := utils.GetConfig().Librespot.SeekStepMs
-	return m.player.Seek(context.Background(), -step, true)
+	return m.player.Seek(context.Background(), -seekStep(), true)
+}
+
+func seekStep() int {
+	cfg := utils.GetConfig()
+	if backendfactory.ResolveKind() == backendfactory.KindNavidrome {
+		return cfg.Player.SeekStepMs
+	}
+	return cfg.Librespot.SeekStepMs
+}
+
+func volumeStep() int {
+	cfg := utils.GetConfig()
+	if backendfactory.ResolveKind() == backendfactory.KindNavidrome {
+		return cfg.Player.VolumeStep
+	}
+	return cfg.Librespot.VolumeStep
 }
 
 func (m *Model) next() error {
@@ -407,7 +401,7 @@ func (m *Model) changeVolume(delta int) (common.VolumeInfo, error) {
 		maxVolume = 100
 	}
 
-	target := max(0, min(maxVolume, volume.Value+delta))
+	target := max(0, min(maxVolume, volume.Volume+delta))
 	if err := m.player.SetVolume(context.Background(), target, false); err != nil {
 		return common.VolumeInfo{}, err
 	}
@@ -462,7 +456,7 @@ func (m *Model) previousCmd() tea.Cmd {
 
 func (m *Model) incrementVolumeCmd() tea.Cmd {
 	return func() tea.Msg {
-		volumeInfo, err := m.changeVolume(utils.GetConfig().Librespot.VolumeStep)
+		volumeInfo, err := m.changeVolume(volumeStep())
 		if err != nil {
 			return transportErrMsg{err: err, action: "Failed to increase volume"}
 		}
@@ -472,76 +466,11 @@ func (m *Model) incrementVolumeCmd() tea.Cmd {
 
 func (m *Model) decrementVolumeCmd() tea.Cmd {
 	return func() tea.Msg {
-		volumeInfo, err := m.changeVolume(-utils.GetConfig().Librespot.VolumeStep)
+		volumeInfo, err := m.changeVolume(-volumeStep())
 		if err != nil {
 			return transportErrMsg{err: err, action: "Failed to decrease volume"}
 		}
 		return volumeChangedMsg{volumeInfo: volumeInfo}
-	}
-}
-
-func decodeOffsetCursor(cursor string) int {
-	if cursor == "" {
-		return 0
-	}
-	value, err := strconv.Atoi(cursor)
-	if err != nil || value < 0 {
-		return 0
-	}
-	return value
-}
-
-func encodeOffsetCursor(offset int) string {
-	if offset < 0 {
-		offset = 0
-	}
-	return strconv.Itoa(offset)
-}
-
-func totalPages(totalItems int, pageSize int) int {
-	if totalItems <= 0 || pageSize <= 0 {
-		return 1
-	}
-	pages := totalItems / pageSize
-	if totalItems%pageSize != 0 {
-		pages++
-	}
-	if pages <= 0 {
-		return 1
-	}
-	return pages
-}
-
-func paginationFromOffset(offset, count, total, pageSize int) common.PaginationInfo {
-	currentPage := 1
-	if pageSize > 0 {
-		currentPage = (offset / pageSize) + 1
-	}
-	hasNext := offset+count < total
-	nextCursor := ""
-	if hasNext {
-		nextCursor = encodeOffsetCursor(offset + pageSize)
-	}
-	return common.PaginationInfo{
-		CurrentPage: currentPage,
-		TotalPages:  totalPages(total, pageSize),
-		TotalItems:  total,
-		HasNext:     hasNext,
-		NextCursor:  nextCursor,
-	}
-}
-
-func paginationFromCursor(page, count, total, pageSize int, nextCursor string) common.PaginationInfo {
-	hasNext := nextCursor != "" && count > 0
-	if page <= 0 {
-		page = 1
-	}
-	return common.PaginationInfo{
-		CurrentPage: page,
-		TotalPages:  totalPages(total, pageSize),
-		TotalItems:  total,
-		HasNext:     hasNext,
-		NextCursor:  nextCursor,
 	}
 }
 

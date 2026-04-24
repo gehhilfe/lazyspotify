@@ -10,11 +10,17 @@ import (
 )
 
 const SpotifyClientIDHelpURL = "https://github.com/dubeyKartikay/lazyspotify?tab=readme-ov-file#set-up-your-spotify-client-id"
+const NavidromeConfigHelpURL = "https://github.com/dubeyKartikay/lazyspotify?tab=readme-ov-file#navidrome-backend"
+
+const (
+	BackendSpotify   = "spotify"
+	BackendNavidrome = "navidrome"
+)
 
 const (
 	appConfigFileName           = "config.yml"
 	spotifyClientIDPlaceholder  = "your_spotify_app_client_id"
-	defaultAppConfigFileContent = "auth:\n  client_id: your_spotify_app_client_id\n"
+	defaultAppConfigFileContent = "backend: spotify\nauth:\n  client_id: your_spotify_app_client_id\n"
 )
 
 var (
@@ -35,6 +41,7 @@ func init() {
 
 type AppConfig struct {
 	LogLevel string `mapstructure:"log_level"`
+	Backend  string `mapstructure:"backend"`
 	Auth     struct {
 		ClientID         string `mapstructure:"client_id"`
 		Host             string `mapstructure:"host"`
@@ -60,6 +67,24 @@ type AppConfig struct {
 			ZeroconfEnabled bool     `mapstructure:"zeroconf_enabled"`
 		} `mapstructure:"daemon"`
 	} `mapstructure:"librespot"`
+	Navidrome struct {
+		ServerURL          string `mapstructure:"server_url"`
+		Username           string `mapstructure:"username"`
+		AuthMethod         string `mapstructure:"auth_method"`
+		StreamFormat       string `mapstructure:"stream_format"`
+		InsecureSkipVerify bool   `mapstructure:"insecure_skip_verify"`
+		Keyring            struct {
+			Service string `mapstructure:"service"`
+			Key     string `mapstructure:"key"`
+		} `mapstructure:"keyring"`
+	} `mapstructure:"navidrome"`
+	Player struct {
+		SeekStepMs int `mapstructure:"seek_step_ms"`
+		VolumeStep int `mapstructure:"volume_step"`
+		Mpv        struct {
+			Cmd []string `mapstructure:"cmd"`
+		} `mapstructure:"mpv"`
+	} `mapstructure:"player"`
 }
 
 func (c AppConfig) SpotifyClientID() string {
@@ -69,6 +94,7 @@ func (c AppConfig) SpotifyClientID() string {
 func getDefaultAppConfig() AppConfig {
 	cfg := AppConfig{}
 	cfg.LogLevel = "ERROR"
+	cfg.Backend = BackendSpotify
 	cfg.Auth.Host = "127.0.0.1"
 	cfg.Auth.Port = 8287
 	cfg.Auth.RedirectEndpoint = "/callback"
@@ -83,6 +109,13 @@ func getDefaultAppConfig() AppConfig {
 	cfg.Librespot.SeekStepMs = 5000
 	cfg.Librespot.VolumeStep = 65535 / 20
 	cfg.Librespot.Daemon.LogLevel = "ERROR"
+	cfg.Navidrome.AuthMethod = "password"
+	cfg.Navidrome.StreamFormat = "raw"
+	cfg.Navidrome.Keyring.Service = "lazyspotify"
+	cfg.Navidrome.Keyring.Key = "navidrome-password"
+	cfg.Player.SeekStepMs = 5000
+	cfg.Player.VolumeStep = 5
+	cfg.Player.Mpv.Cmd = []string{"mpv"}
 	return cfg
 }
 
@@ -120,8 +153,24 @@ func ValidateStartupConfig() error {
 }
 
 func validateStartupConfig(cfg AppConfig) error {
-	if clientID := cfg.SpotifyClientID(); clientID == "" || clientID == spotifyClientIDPlaceholder {
-		return fmt.Errorf("missing required config value `auth.client_id`; see %s", SpotifyClientIDHelpURL)
+	backend := cfg.Backend
+	if backend == "" {
+		backend = BackendSpotify
+	}
+	switch backend {
+	case BackendSpotify:
+		if clientID := cfg.SpotifyClientID(); clientID == "" || clientID == spotifyClientIDPlaceholder {
+			return fmt.Errorf("missing required config value `auth.client_id`; see %s", SpotifyClientIDHelpURL)
+		}
+	case BackendNavidrome:
+		if strings.TrimSpace(cfg.Navidrome.ServerURL) == "" {
+			return fmt.Errorf("missing required config value `navidrome.server_url`; see %s", NavidromeConfigHelpURL)
+		}
+		if strings.TrimSpace(cfg.Navidrome.Username) == "" {
+			return fmt.Errorf("missing required config value `navidrome.username`; see %s", NavidromeConfigHelpURL)
+		}
+	default:
+		return fmt.Errorf("unknown backend %q; expected %q or %q", backend, BackendSpotify, BackendNavidrome)
 	}
 	return nil
 }
@@ -166,6 +215,7 @@ func SafeGetConfigDir() string {
 func applyConfigDefaults(v *viper.Viper) {
 	defaults := getDefaultAppConfig()
 	v.SetDefault("log_level", defaults.LogLevel)
+	v.SetDefault("backend", defaults.Backend)
 	v.SetDefault("auth.host", defaults.Auth.Host)
 	v.SetDefault("auth.port", defaults.Auth.Port)
 	v.SetDefault("auth.redirect-endpoint", defaults.Auth.RedirectEndpoint)
@@ -181,4 +231,14 @@ func applyConfigDefaults(v *viper.Viper) {
 	v.SetDefault("librespot.volume-step", defaults.Librespot.VolumeStep)
 	v.SetDefault("librespot.daemon.log_level", defaults.Librespot.Daemon.LogLevel)
 	v.SetDefault("librespot.daemon.zeroconf_enabled", defaults.Librespot.Daemon.ZeroconfEnabled)
+	v.SetDefault("navidrome.server_url", defaults.Navidrome.ServerURL)
+	v.SetDefault("navidrome.username", defaults.Navidrome.Username)
+	v.SetDefault("navidrome.auth_method", defaults.Navidrome.AuthMethod)
+	v.SetDefault("navidrome.stream_format", defaults.Navidrome.StreamFormat)
+	v.SetDefault("navidrome.insecure_skip_verify", defaults.Navidrome.InsecureSkipVerify)
+	v.SetDefault("navidrome.keyring.service", defaults.Navidrome.Keyring.Service)
+	v.SetDefault("navidrome.keyring.key", defaults.Navidrome.Keyring.Key)
+	v.SetDefault("player.seek_step_ms", defaults.Player.SeekStepMs)
+	v.SetDefault("player.volume_step", defaults.Player.VolumeStep)
+	v.SetDefault("player.mpv.cmd", defaults.Player.Mpv.Cmd)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/dubeyKartikay/lazyspotify/core/logger"
 	"github.com/dubeyKartikay/lazyspotify/librespot"
 	"github.com/dubeyKartikay/lazyspotify/librespot/models"
+	"github.com/dubeyKartikay/lazyspotify/ui/v1/common"
 )
 
 type Player struct {
@@ -125,12 +126,16 @@ func (p *Player) SetVolume(ctx context.Context, volume int, relative bool) error
 	return nil
 }
 
-func (p *Player) GetVolume(ctx context.Context) (*models.VolumeResponse, error) {
+func (p *Player) GetVolume(ctx context.Context) (common.VolumeInfo, error) {
 	l, err := p.requireLibrespot()
 	if err != nil {
-		return nil, err
+		return common.VolumeInfo{}, err
 	}
-	return l.Client.GetVolume(ctx)
+	resp, err := l.Client.GetVolume(ctx)
+	if err != nil {
+		return common.VolumeInfo{}, err
+	}
+	return common.VolumeInfo{Volume: resp.Value, Max: resp.Max}, nil
 }
 
 func (p *Player) GetPlaylistTracks(ctx context.Context, uri string, offset int, limit int) (*models.ResolveTracksResponse, error) {
